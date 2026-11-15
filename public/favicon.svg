@@ -1,41 +1,75 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Pons Vamp">
   <defs>
-    <linearGradient id="chrome" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f6f8f4"/>
-      <stop offset=".35" stop-color="#c9d4cc"/>
-      <stop offset=".55" stop-color="#8e9f95"/>
-      <stop offset=".8" stop-color="#d7e0da"/>
-      <stop offset="1" stop-color="#7d8c83"/>
-    </linearGradient>
-    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
-      <stop offset=".5" stop-color="#ffffff" stop-opacity=".15"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity=".6"/>
-    </linearGradient>
-    <linearGradient id="fang" x1="0" y1="0" x2="0" y2="1">
+    <path id="p" fill-rule="evenodd"
+      d="M44 16 H77 A27 27 0 0 1 104 43 V55 A25 25 0 0 1 79 80 H62 V96 A14 14 0 0 1 48 110 H44 A14 14 0 0 1 30 96 V30 A14 14 0 0 1 44 16 Z
+         M62 39 H75 A6 6 0 0 1 81 45 V51 A6 6 0 0 1 75 57 H62 Z"/>
+    <clipPath id="pclip"><use href="#p"/></clipPath>
+
+    <radialGradient id="bg" cx=".5" cy=".42" r=".75">
+      <stop offset="0" stop-color="#16224f"/>
+      <stop offset=".55" stop-color="#0d1020"/>
+      <stop offset="1" stop-color="#070708"/>
+    </radialGradient>
+    <linearGradient id="chrome" x1="0" y1="0" x2=".35" y2="1">
       <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#c9d4cc"/>
+      <stop offset=".28" stop-color="#dfe7e2"/>
+      <stop offset=".46" stop-color="#9fb0a7"/>
+      <stop offset=".5" stop-color="#7b8c84"/>
+      <stop offset=".62" stop-color="#cdd8d1"/>
+      <stop offset=".85" stop-color="#eef3ef"/>
+      <stop offset="1" stop-color="#a8b6ae"/>
+    </linearGradient>
+    <linearGradient id="side" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4b5752"/>
+      <stop offset="1" stop-color="#1c2220"/>
+    </linearGradient>
+    <linearGradient id="fang" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".6" stop-color="#eef1ec"/>
+      <stop offset="1" stop-color="#aab5ae"/>
     </linearGradient>
     <linearGradient id="blood" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ff6b5c"/>
-      <stop offset="1" stop-color="#b3261e"/>
+      <stop offset="0" stop-color="#ff5a4a"/>
+      <stop offset="1" stop-color="#9e1b14"/>
     </linearGradient>
-    <radialGradient id="glow" cx=".5" cy=".55" r=".55">
-      <stop offset="0" stop-color="#335bf9" stop-opacity=".35"/>
-      <stop offset="1" stop-color="#335bf9" stop-opacity="0"/>
-    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000" flood-opacity=".7"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
   </defs>
-  <rect width="128" height="128" rx="28" fill="#0a0a0a"/>
-  <rect width="128" height="128" rx="28" fill="url(#glow)"/>
-  <!-- fangs (behind the P so they hang out of the bowl) -->
-  <path d="M63 76 L70 101 L77 76 Z" fill="url(#fang)"/>
-  <path d="M83 74 L89 94 L95 70 Z" fill="url(#fang)"/>
-  <!-- chunky chrome P with a small counter -->
-  <path fill="url(#chrome)" fill-rule="evenodd" stroke="url(#rim)" stroke-width="2.5" stroke-linejoin="round"
-    d="M44 18 H78 A26 26 0 0 1 104 44 V56 A24 24 0 0 1 80 80 H62 V96 A14 14 0 0 1 48 110 H44 A14 14 0 0 1 30 96 V32 A14 14 0 0 1 44 18 Z
-       M62 40 H76 A6 6 0 0 1 82 46 V52 A6 6 0 0 1 76 58 H62 Z"/>
-  <!-- glossy highlight -->
-  <path d="M40 26 H76 A18 18 0 0 1 92 34" fill="none" stroke="#ffffff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
-  <!-- blood drop -->
-  <path d="M70 104 c0 0 -5 6.5 -5 9.6 a5 5 0 0 0 10 0 c0 -3.1 -5 -9.6 -5 -9.6z" fill="url(#blood)"/>
+
+  <!-- tile -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <rect x=".75" y=".75" width="126.5" height="126.5" rx="27.25" fill="none" stroke="#335bf9" stroke-opacity=".35" stroke-width="1.5"/>
+  <ellipse cx="66" cy="60" rx="34" ry="30" fill="#335bf9" opacity=".35" filter="url(#glow)"/>
+
+  <g filter="url(#shadow)">
+    <!-- fangs: curved, rooted inside the bowl -->
+    <path d="M64 72 C64 84 67 93 70.5 101 C73 92 76 84 76.5 72 Z" fill="url(#fang)"/>
+    <path d="M85 70 C85.5 79 87.5 85 90 90.5 C92.5 84 95 77 96 66 Z" fill="url(#fang)"/>
+    <path d="M70.5 101 C69 93 67 85 66.5 75" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="1" stroke-linecap="round"/>
+
+    <!-- extruded depth -->
+    <use href="#p" fill="url(#side)" transform="translate(3 4)"/>
+    <!-- chrome face -->
+    <use href="#p" fill="url(#chrome)"/>
+    <!-- bevel: bright top-left, dark bottom-right, clipped to the face -->
+    <g clip-path="url(#pclip)" fill="none">
+      <use href="#p" stroke="#ffffff" stroke-opacity=".9" stroke-width="4" transform="translate(1.2 1.2)"/>
+      <use href="#p" stroke="#3d4a44" stroke-opacity=".55" stroke-width="4" transform="translate(-1.4 -1.4)"/>
+      <!-- horizon reflection band -->
+      <path d="M26 62 C50 56 80 58 108 50" stroke="#ffffff" stroke-opacity=".35" stroke-width="3"/>
+    </g>
+    <use href="#p" fill="none" stroke="#0b0d0c" stroke-opacity=".55" stroke-width="1"/>
+
+    <!-- blood: drips off the left fang tip -->
+    <path d="M70.5 100 C71.6 103 72 105.5 72 107.5 C72 108.5 71.4 109 70.5 109 C69.6 109 69 108.5 69 107.5 C69 105.5 69.4 103 70.5 100 Z" fill="url(#blood)"/>
+    <path d="M70.5 111.5 C70.5 111.5 66.6 116 66.6 118.6 A3.9 3.9 0 0 0 74.4 118.6 C74.4 116 70.5 111.5 70.5 111.5 Z" fill="url(#blood)"/>
+    <ellipse cx="69.2" cy="117.6" rx=".9" ry="1.4" fill="#fff" opacity=".55"/>
+  </g>
+
+  <!-- glint -->
+  <path d="M41 24 l1.6 4.4 4.4 1.6 -4.4 1.6 -1.6 4.4 -1.6 -4.4 -4.4 -1.6 4.4 -1.6z" fill="#fff" opacity=".95"/>
 </svg>

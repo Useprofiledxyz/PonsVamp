@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pons Vamp</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">🧛 <b>PONS VAMP</b> <span class="muted">· Robinhood Chain</span></div>
+      <div class="wallet">
+        <span id="walletInfo" class="muted">not connected</span>
+        <button id="connectBtn">Connect</button>
+        <button id="settingsBtn" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="paste">
+        <input id="ca" autocomplete="off" spellcheck="false"
+          placeholder="Paste CA (or any link with a CA) → Enter to vamp" autofocus />
+        <label class="insta"><input type="checkbox" id="insta" /> Insta-vamp <span class="muted">(launch on paste)</span></label>
+      </section>
+
+      <section id="preview" class="card hidden">
+        <img id="pLogo" alt="" />
+        <div class="fields">
+          <div class="row">
+            <label>Name <input id="pName" /></label>
+            <label class="sym">Ticker <input id="pSymbol" /></label>
+          </div>
+          <label>Logo URL <input id="pLogoUrl" /></label>
+          <label>Description <textarea id="pDesc" rows="2"></textarea></label>
+          <div class="row socials">
+            <label>X <input id="sTwitter" /></label>
+            <label>TG <input id="sTelegram" /></label>
+            <label>Web <input id="sWebsite" /></label>
+          </div>
+          <div class="row foot">
+            <span id="pSource" class="tag"></span>
+            <button id="vampBtn" class="primary">VAMP ⏎</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="status" class="status"></section>
+
+      <section>
+        <h3>Launched</h3>
+        <ul id="history"></ul>
+      </section>
+    </main>
+
+    <dialog id="settings">
+      <form method="dialog">
+        <h3>Settings</h3>
+        <label>Wallet
+          <select id="optWallet">
+            <option value="injected">Browser wallet (MetaMask / Rabby)</option>
+            <option value="burner">Burner key (no popups, fastest)</option>
+          </select>
+        </label>
+        <label id="burnerRow">Burner private key
+          <input id="optBurner" type="password" placeholder="0x…" autocomplete="off" />
+          <small class="warn">Stored in this browser's localStorage. Only use a hot wallet with small funds.</small>
+        </label>
+        <label>Dev buy (ETH, 0 = none) <input id="optDevBuy" type="number" min="0" step="0.001" /></label>
+        <label>Creator tax (bps, 0–<span id="maxTax">1000</span>) <input id="optTax" type="number" min="0" step="1" /></label>
+        <label class="inline"><input type="checkbox" id="optBuyback" /> Buyback enabled</label>
+        <label class="inline"><input type="checkbox" id="optCopySocials" /> Copy socials from source</label>
+        <label class="inline"><input type="checkbox" id="optCopyDesc" /> Copy description from source</label>
+        <label>Ticker prefix / suffix
+          <span class="row"><input id="optPrefix" placeholder="prefix" /><input id="optSuffix" placeholder="suffix" /></span>
+        </label>
+        <label>RPC URL <input id="optRpc" /></label>
+        <label>Pons token link template <input id="optLink" /></label>
+        <menu><button value="save" class="primary">Save</button></menu>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

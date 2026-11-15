@@ -1,12 +1,12 @@
 :root {
-  --bg: #0b0b0f;
-  --panel: #15151c;
-  --line: #2a2a35;
-  --text: #ececf1;
-  --muted: #8b8b99;
-  --accent: #c8ff3d;
-  --red: #ff5a6a;
-  --green: #4ade80;
+  --bg: #0a0a0a;
+  --panel: #141416;
+  --line: #2a2a2e;
+  --text: #f6f4ef;
+  --muted: #a3a3a5;
+  --accent: #335bf9;
+  --red: #d94c39;
+  --green: #52d080;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -34,7 +34,7 @@ button {
   border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer;
 }
 button:hover { border-color: var(--accent); }
-button.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 700; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 button:disabled { opacity: .5; cursor: wait; }
 .paste #ca { font: 18px ui-monospace, monospace; padding: 16px; border-width: 2px; }
 .insta { display: inline-flex; gap: 6px; align-items: center; margin-top: 8px; width: auto; }
@@ -64,7 +64,7 @@ h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing
 }
 #history img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
 #history code { font-size: 12px; color: var(--muted); }
-a { color: var(--accent); }
+a { color: #7f9bff; }
 dialog {
   background: var(--panel); color: var(--text); border: 1px solid var(--line);
   border-radius: 12px; width: min(460px, calc(100vw - 32px));

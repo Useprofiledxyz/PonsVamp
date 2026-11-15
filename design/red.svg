@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Pons Vamp">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ef3340"/>
+      <stop offset="1" stop-color="#a50d1c"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#g)"/>
+  <path fill="#ffffff" fill-rule="evenodd" d="M42 18 H76 A28 28 0 0 1 104 46 V54 A28 28 0 0 1 76 82 H64 V98 A12 12 0 0 1 52 110 H42 A12 12 0 0 1 30 98 V30 A12 12 0 0 1 42 18 Z M64 42 H74 A7 7 0 0 1 81 49 V51 A7 7 0 0 1 74 58 H64 Z"/>
+  <path fill="#ffffff" d="M66 80 L72 97 L78 80 Z M86 78 L91 93 L96 72 Z"/>
+</svg>

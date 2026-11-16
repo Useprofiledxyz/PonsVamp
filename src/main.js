@@ -2,7 +2,7 @@ import { formatEther, formatUnits, parseAbiItem, parseEther, parseUnits } from "
 import {
   DEFAULT_RPC,
   PONS_V2_FACTORY,
-  displayLogo,
+  logoSources,
   extractCA,
   factoryAbi,
   fetchTokenMeta,
@@ -82,12 +82,21 @@ function priceStr(p) {
   return `${pre}0.0<sub>${zeros}</sub>${s[0].replace(".", "").slice(0, 3)}`;
 }
 const hue = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
-function avatar(t, cls = "av") {
-  const src = displayLogo(t.logo || "");
+// Drawn size per avatar class, so each logo is fetched at the size it is shown.
+const AV_PX = { av: 52, tav: 18, tmav: 20, king: 76, tok: 96, prev: 130 };
+function avatar(t, cls = "av", px = AV_PX[cls] ?? 52) {
+  const srcs = logoSources(t.logo || "", px);
   const ph = `<div class="${cls} ph" style="background:hsl(${hue(t.token || t.symbol)} 60% 35%)">${esc((t.symbol || "?")[0] || "?")}</div>`;
-  if (!src) return ph;
-  return `<img class="${cls}" src="${esc(src)}" alt="" loading="lazy" onerror="this.outerHTML=this.dataset.ph" data-ph="${esc(ph)}">`;
+  if (!srcs.length) return ph;
+  return `<img class="${cls}" src="${esc(srcs[0])}" alt="" width="${px}" height="${px}" decoding="async" loading="${px >= 76 ? "eager" : "lazy"}"
+    referrerpolicy="no-referrer" onerror="logoFallback(this)" data-alt="${esc(JSON.stringify(srcs.slice(1)))}" data-ph="${esc(ph)}">`;
 }
+// Try the next source; when none are left, show the letter placeholder.
+window.logoFallback = (img) => {
+  const rest = JSON.parse(img.dataset.alt || "[]");
+  if (rest.length) { img.dataset.alt = JSON.stringify(rest.slice(1)); img.src = rest[0]; }
+  else img.outerHTML = img.dataset.ph;
+};
 
 // ── toasts ──────────────────────────────────────────────────────────────────
 function toast(html, kind = "", ms = 6000) {
@@ -348,7 +357,7 @@ function renderKing() {
   el.dataset.token = L.address;
   el.innerHTML = `
     <div class="label">👑 King of Pons <span class="muted" style="letter-spacing:0;text-transform:none;font-weight:500">· #1 trending on Pons</span></div>
-    <div class="row">${avatar({ logo: k.image || L.artwork, symbol: L.symbol, token: L.address })}
+    <div class="row">${avatar({ logo: k.image || L.artwork, symbol: L.symbol, token: L.address }, "av", 76)}
       <div><div class="name">${esc(L.name)}</div><div class="muted">$${esc(L.symbol)} · ${esc(L.stage)} ${chg}</div></div></div>
     ${bonding ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Bonding curve</span><b style="color:var(--text)">${pct}%</b></div><div class="bar big"><i style="width:${pct}%"></i></div>` : ""}
     <div class="kv" style="grid-template-columns:repeat(3,1fr)">
@@ -434,7 +443,7 @@ async function renderToken(addr) {
   <section class="tok">
     <div style="display:grid;gap:22px">
       <div class="panel tok-head">
-        ${avatar(t)}
+        ${avatar(t, "av", 96)}
         <div>
           <h1 class="name">${esc(t.name)} <span class="muted" style="font-size:16px">$${esc(t.symbol)}</span></h1>
           <div class="muted" style="margin-top:4px">${esc(t.description || "No description.")}</div>
@@ -635,7 +644,7 @@ function renderVamp(prefill) {
     loadCA(text, { autoLaunch: S.insta });
   });
   ca.addEventListener("input", () => { if (extractCA(ca.value)) loadCA(ca.value); });
-  $("#pLogoUrl").oninput = () => { $("#pAv").innerHTML = avatar({ logo: $("#pLogoUrl").value, symbol: $("#pSymbol").value }); };
+  $("#pLogoUrl").oninput = () => { $("#pAv").innerHTML = avatar({ logo: $("#pLogoUrl").value, symbol: $("#pSymbol").value }, "av", 130); };
   $("#vampBtn").onclick = vamp;
   renderVampHistory();
   st.vamp = null;
@@ -659,7 +668,7 @@ async function loadCA(raw, { autoLaunch = false } = {}) {
     $("#pName").value = m.name;
     $("#pSymbol").value = (S.prefix + m.symbol + S.suffix).trim();
     $("#pLogoUrl").value = m.logo;
-    $("#pAv").innerHTML = avatar({ logo: m.logo, symbol: m.symbol, token: ca });
+    $("#pAv").innerHTML = avatar({ logo: m.logo, symbol: m.symbol, token: ca }, "av", 130);
     $("#pDesc").value = S.copyDesc ? m.description : "";
     $("#sTwitter").value = S.copySocials ? m.socials.twitter : "";
     $("#sTelegram").value = S.copySocials ? m.socials.telegram : "";

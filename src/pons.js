@@ -83,11 +83,36 @@ export function extractCA(text) {
   return m && isAddress(m[0]) ? getAddress(m[0]) : null;
 }
 
-/** Turn ipfs:// into something an <img> can show. The original string is what gets launched. */
-export function displayLogo(logo) {
-  if (!logo) return "";
-  if (logo.startsWith("ipfs://")) return "https://ipfs.io/ipfs/" + logo.slice(7).replace(/^ipfs\//, "");
-  return logo;
+// ── token logos ─────────────────────────────────────────────────────────────
+// ipfs.io / dweb.link rate-limit (HTTP 429), which is what made logos slow.
+// Every logo goes through wsrv.nl: an image CDN (Cloudflare) that resizes to the
+// size we actually draw, converts to WebP (~1-3 KB) and caches for a year.
+// IPFS content is fetched from gateways that answer wsrv reliably.
+const IPFS_GATEWAYS = ["https://4everland.io/ipfs/", "https://ipfs.filebase.io/ipfs/", "https://gateway.pinata.cloud/ipfs/"];
+
+/** "ipfs://cid", "ipfs://ipfs/cid" or "https://any-gateway/ipfs/cid" → "cid[/path]". */
+function ipfsPath(logo) {
+  if (logo.startsWith("ipfs://")) return logo.slice(7).replace(/^ipfs\//, "");
+  const m = logo.match(/^https?:\/\/[^/]+\/ipfs\/(.+)$/);
+  return m ? m[1] : null;
+}
+const wsrv = (url, px) => `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${px}&h=${px}&fit=cover&output=webp&q=80`;
+
+/** Ordered list of URLs to try for a logo drawn at `px` CSS pixels (fetched at 2× for sharp screens). */
+export function logoSources(logo, px = 52) {
+  if (!logo) return [];
+  logo = logo.trim();
+  if (logo.startsWith("data:")) return [logo];
+  const size = Math.min(512, Math.round(px * 2));
+  const p = ipfsPath(logo);
+  if (p) return [wsrv(IPFS_GATEWAYS[0] + p, size), wsrv(IPFS_GATEWAYS[1] + p, size), IPFS_GATEWAYS[2] + p];
+  if (/^https?:\/\//.test(logo)) return [wsrv(logo, size), logo];
+  return [];
+}
+
+/** First URL to show for a logo. The original string is what gets launched. */
+export function displayLogo(logo, px) {
+  return logoSources(logo, px)[0] || "";
 }
 
 async function dexscreener(ca) {

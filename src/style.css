@@ -224,9 +224,23 @@ h4 { margin: 8px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing
 .steps b { color: var(--text); }
 kbd { font-family: "JetBrains Mono", monospace; font-size: 12px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line); border-bottom-width: 2px; background: var(--bg2); color: var(--text); }
 
-/* ── portfolio ──────────────────────────────────────────── */
-.pf { display: grid; grid-template-columns: 340px 1fr; gap: 22px; align-items: start; }
+/* ── profile ────────────────────────────────────────────── */
+.pf { display: grid; grid-template-columns: 360px 1fr; gap: 22px; align-items: start; }
 .big-num { font-size: 30px; font-weight: 800; }
+.pf-head {
+  display: grid; grid-template-columns: 84px 1fr auto; gap: 20px; align-items: center; padding: 22px;
+  background: linear-gradient(120deg, rgba(224, 41, 58, .14), transparent 55%), var(--panel);
+}
+.pf-av { width: 84px; height: 84px; border-radius: 22px; box-shadow: 0 10px 30px -10px var(--glow); }
+.pf-addr { margin: 2px 0 0; font-size: 24px; }
+.pf-bal { text-align: right; display: grid; gap: 2px; }
+.pf-bal b { font-size: 22px; }
+.fee-card { border-color: rgba(224, 41, 58, .45); background: linear-gradient(180deg, rgba(224, 41, 58, .12), transparent 70%), var(--panel); }
+.fee-card .big-num { font-size: 36px; }
+.fee-card #pfClaim { padding: 13px; font-size: 15px; }
+.foot-brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); }
+.foot-brand b { letter-spacing: .04em; }
+.foot-tag { color: var(--muted); }
 
 /* ── toasts / dialog ────────────────────────────────────── */
 #toasts { position: fixed; right: 18px; bottom: 18px; display: grid; gap: 8px; z-index: 50; max-width: min(380px, calc(100vw - 36px)); }
@@ -251,6 +265,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; ma
   .trade-box { position: static; }
 }
 @media (max-width: 760px) {
+  .pf-head { grid-template-columns: 60px 1fr; }
+  .pf-av { width: 60px; height: 60px; border-radius: 16px; }
+  .pf-addr { font-size: 18px; }
+  .pf-bal { grid-column: 1 / -1; text-align: left; }
   .top { flex-wrap: wrap; gap: 10px; padding: 10px 16px; }
   .quick { order: 5; flex-basis: 100%; max-width: none; }
   nav { order: 4; flex-basis: 100%; }

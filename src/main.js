@@ -166,7 +166,9 @@ async function pollLaunches() {
 async function pollLive() {
   if (!st.loaded) return;
   const r = route();
-  const list = r.page === "token" ? [st.tokens.get(r.arg?.toLowerCase())].filter(Boolean) : st.order.slice(0, 240);
+  const list = r.page === "token"
+    ? [st.tokens.get(r.arg?.toLowerCase())].filter(Boolean)
+    : [...new Set([...st.order.slice(0, 240), ...(st.hot || []), ...(st.grad || []), ...(st.trendingCurve || [])])];
   await Promise.all(list.map((t) => M.loadLive(client, t))).catch(() => {});
   if (r.page === "") renderDiscoverLists();
   if (r.page === "token") renderTokenLive();
@@ -224,7 +226,7 @@ function render() {
   $$("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === r.page));
   if (r.page === "vamp") return renderVamp(r.arg);
   if (r.page === "token") return renderToken(r.arg);
-  if (r.page === "me") return renderPortfolio();
+  if (r.page === "profile" || r.page === "me") return renderProfile(r.arg);
   return renderDiscover();
 }
 
@@ -296,6 +298,56 @@ function matches(t) {
   return (t.name || "").toLowerCase().includes(q) || (t.symbol || "").toLowerCase().includes(q) || t.token.toLowerCase().includes(q);
 }
 
+// ── Pons-only boards ────────────────────────────────────────────────────────
+// The home page only shows tokens launched by the Pons v2 factory that are still
+// on their Pons bonding curve (ETH pair). Graduated tokens (trading on Uniswap),
+// legacy v1 pools and anything from other launchpads are left out.
+const isPonsCurve = (l) =>
+  l && l.stage === "curve" && l.protocol === "v2" &&
+  (l.factory || "").toLowerCase() === PONS_V2_FACTORY.toLowerCase() && !!l.curve &&
+  (l.quote?.isNative ?? true);
+
+/** Turn a Pons API launch into our token object (and register it so live refresh / quick buy work). */
+function fromPons(l) {
+  const k = l.address.toLowerCase();
+  const t = st.tokens.get(k) || {
+    token: l.address, curve: l.curve, deployer: l.deployer, block: 0n, phase: 0,
+    supply: 10n ** 27n, threshold: BigInt(Math.round((l.thresholdQuote || 4.2) * 1e6)) * 10n ** 12n,
+  };
+  Object.assign(t, {
+    name: t.name || l.name, symbol: t.symbol || l.symbol, logo: t.logo || l.artwork || "",
+    description: t.description ?? l.description, socials: t.socials || l.socials || {},
+    createdAt: l.createdAt, creatorTaxBps: t.creatorTaxBps ?? l.creatorTaxBps,
+    volumeUsd: l.volumeUsd, tradeCount: l.tradeCount,
+  });
+  if (t.progress == null && l.progress != null) t.progress = l.progress;
+  if (t.mcapEth == null && l.marketCapQuote) t.mcapEth = l.marketCapQuote;
+  if (t.raised == null && l.raisedQuote != null) t.raised = BigInt(Math.round(l.raisedQuote * 1e6)) * 10n ** 12n;
+  if (!st.tokens.has(k)) { st.tokens.set(k, t); st.byCurve.set(t.curve.toLowerCase(), t); }
+  return t;
+}
+
+async function loadPonsBoards() {
+  const [hot, grad, trending] = await Promise.all([
+    M.ponsLaunches({ stage: "curve", sort: "active" }).catch(() => null),
+    M.ponsLaunches({ stage: "curve", sort: "progress" }).catch(() => null),
+    M.ponsTrending().catch(() => null),
+  ]);
+  if (hot) st.hot = hot.filter(isPonsCurve).map(fromPons);
+  if (grad) st.grad = grad.filter(isPonsCurve).map(fromPons);
+  if (trending) st.trendingCurve = trending.filter((x) => isPonsCurve(x.launch)).map((x) => Object.assign(fromPons(x.launch), { trend: x, image: x.image }));
+  st.boardsFailed = !hot && !grad && !trending;
+  if (route().page === "") renderDiscoverLists();
+}
+
+function ageOf(t) {
+  if (t.createdAt && !t.block) {
+    const s = Math.max(0, Date.now() / 1000 - t.createdAt);
+    return s < 60 ? `${Math.floor(s)}s` : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`;
+  }
+  return ago(t.block);
+}
+
 function card(t) {
   const fresh = (st.freshUntil.get(t.token.toLowerCase()) || 0) > Date.now();
   const pct = Math.round((t.progress || 0) * 100);
@@ -304,7 +356,7 @@ function card(t) {
     ${avatar(t)}
     <div class="meta">
       <div class="t1"><b>${esc(t.name)}</b><span class="sym">$${esc(t.symbol)}</span></div>
-      <div class="t2"><span class="mc">MC ${usd(t.mcapEth)}</span><span>${ago(t.block)}</span><span>${t.phase === 2 ? `<span class="tag grad">graduated</span>` : pct + "%"}</span>${t.creatorTaxBps ? `<span class="tag tax">tax ${t.creatorTaxBps / 100}%</span>` : ""}</div>
+      <div class="t2"><span class="mc">MC ${usd(t.mcapEth)}</span><span>${ageOf(t)}</span><span>${pct}%</span>${t.creatorTaxBps ? `<span class="tag tax">tax ${t.creatorTaxBps / 100}%</span>` : ""}</div>
       <div class="bar"><i style="width:${pct}%"></i></div>
     </div>
     <div class="acts">
@@ -322,68 +374,63 @@ function renderDiscoverLists() {
     renderKing();
     return;
   }
-  const all = st.order.filter(matches);
-  const fresh = all.slice(0, 60);
-  const hot = all.filter((t) => t.phase === 0 && t.progress >= 0.03 && t.progress < 0.35).sort((a, b) => b.progress - a.progress).slice(0, 60);
-  const grad = all.filter((t) => t.progress >= 0.35 || t.phase >= 1).sort((a, b) => (b.phase - a.phase) || (b.progress - a.progress)).slice(0, 60);
+  // Only Pons v2 tokens still on their Pons curve.
+  const onCurve = (t) => t.phase === 0 && matches(t);
+  const fresh = st.order.filter(onCurve).slice(0, 60);
+  const hot = (st.hot || []).filter(onCurve).slice(0, 60);
+  const grad = (st.grad || []).filter(onCurve).sort((a, b) => b.progress - a.progress).slice(0, 60);
   const fill = (id, cid, arr, empty) => {
     $(id).innerHTML = arr.length ? arr.map(card).join("") : `<div class="empty">${empty}</div>`;
     $(cid).textContent = arr.length;
   };
+  const wait = st.boardsFailed ? "Pons board is unavailable right now." : st.hot ? null : "Loading from Pons…";
   fill("#colNew", "#cNew", fresh, "No launches match.");
-  fill("#colHot", "#cHot", hot, "Nothing heating up yet.");
-  fill("#colGrad", "#cGrad", grad, "Nothing past 35% yet.");
+  fill("#colHot", "#cHot", hot, wait || "Nothing trading right now.");
+  fill("#colGrad", "#cGrad", grad, wait || "Nothing close to graduating.");
 
   renderKing();
   updateStats();
 }
 
-// King = #1 on Pons' own trending list (ponsfamily.com/api/launches/trending).
+// King of the curve, from Pons' own data: Pons trending tokens that are still on
+// their Pons curve first, then the Pons board sorted by curve progress.
 function renderKing() {
   const el = $("#king");
   if (!el) return;
-  const list = st.trending || [];
+  const seen = new Set();
+  const list = [...(st.trendingCurve || []), ...(st.grad || [])]
+    .filter((t) => t.phase === 0 && !seen.has(t.token.toLowerCase()) && seen.add(t.token.toLowerCase()));
   if (!list.length) {
-    el.innerHTML = st.trendingFailed
-      ? `<div class="label">👑 King of Pons</div><div class="empty">Pons trending is unavailable right now.</div>`
+    el.innerHTML = st.boardsFailed
+      ? `<div class="label">👑 King of the curve</div><div class="empty">Pons data is unavailable right now.</div>`
       : `<div class="skel" style="height:100%"></div>`;
     return;
   }
   const [k, ...rest] = list;
-  const L = k.launch;
-  const chg = k.change == null ? "" : `<span class="${k.change >= 0 ? "up" : "down"}">${k.change >= 0 ? "+" : ""}${(k.change * 100).toFixed(1)}%</span>`;
-  const bonding = L.stage !== "graduated" && L.progress != null;
-  const pct = bonding ? (L.progress * (L.progress <= 1 ? 100 : 1)).toFixed(1) : null;
-  el.dataset.token = L.address;
+  const why = k.trend ? "#1 trending on Pons" : "highest curve progress on Pons";
+  const chg = k.trend?.change == null ? "" : `<span class="${k.trend.change >= 0 ? "up" : "down"}">${k.trend.change >= 0 ? "+" : ""}${(k.trend.change * 100).toFixed(1)}%</span>`;
+  const pct = ((k.progress || 0) * 100).toFixed(1);
+  el.dataset.token = k.token;
   el.innerHTML = `
-    <div class="label">👑 King of Pons <span class="muted" style="letter-spacing:0;text-transform:none;font-weight:500">· #1 trending on Pons</span></div>
-    <div class="row">${avatar({ logo: k.image || L.artwork, symbol: L.symbol, token: L.address }, "av", 76)}
-      <div><div class="name">${esc(L.name)}</div><div class="muted">$${esc(L.symbol)} · ${esc(L.stage)} ${chg}</div></div></div>
-    ${bonding ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Bonding curve</span><b style="color:var(--text)">${pct}%</b></div><div class="bar big"><i style="width:${pct}%"></i></div>` : ""}
+    <div class="label">👑 King of the curve <span class="muted" style="letter-spacing:0;text-transform:none;font-weight:500">· ${why}</span></div>
+    <div class="row">${avatar({ ...k, logo: k.image || k.logo }, "av", 76)}
+      <div><div class="name">${esc(k.name)}</div><div class="muted">$${esc(k.symbol)} · ${ageOf(k)} old ${chg}</div></div></div>
+    <div class="muted" style="display:flex;justify-content:space-between"><span>Bonding curve</span><b style="color:var(--text)">${pct}%</b></div>
+    <div class="bar big"><i style="width:${pct}%"></i></div>
     <div class="kv" style="grid-template-columns:repeat(3,1fr)">
-      <div><span>Market cap</span><b>${compact(L.marketCapUsd, "$")}</b></div>
-      <div><span>Volume</span><b>${compact(k.volumeUsd, "$")}</b></div>
-      <div><span>Traders</span><b>${k.traders ?? "—"}</b></div>
+      <div><span>Market cap</span><b>${usd(k.mcapEth)}</b></div>
+      <div><span>Volume</span><b>${compact(k.trend?.volumeUsd ?? k.volumeUsd, "$")}</b></div>
+      <div><span>${k.trend ? "Traders" : "Trades"}</span><b>${k.trend?.traders ?? k.tradeCount ?? "—"}</b></div>
     </div>
     <div class="trend-mini">${rest.slice(0, 4).map((x, i) => `
-      <div class="tm" data-token="${x.launch.address}">
-        <span class="muted">#${i + 2}</span>${avatar({ logo: x.image || x.launch.artwork, symbol: x.launch.symbol, token: x.launch.address }, "tmav")}
-        <b>${esc(x.launch.symbol)}</b><span class="muted">${compact(x.launch.marketCapUsd, "$")}</span></div>`).join("")}
+      <div class="tm" data-token="${x.token}">
+        <span class="muted">#${i + 2}</span>${avatar({ ...x, logo: x.image || x.logo }, "tmav")}
+        <b>${esc(x.symbol)}</b><span class="muted">${Math.round((x.progress || 0) * 100)}%</span></div>`).join("")}
     </div>
     <div class="row">
-      ${bonding && L.curve ? `<button class="btn green" data-qbuy="${L.address}">Buy ${esc(S.quickBuy)} Ξ</button>` : `<a class="btn green" href="#/token/${L.address}" style="text-align:center">Trade</a>`}
-      <button class="btn" data-vamp="${L.address}">🧛 Vamp it</button>
+      <button class="btn green" data-qbuy="${k.token}">Buy ${esc(S.quickBuy)} Ξ</button>
+      <button class="btn" data-vamp="${k.token}">🧛 Vamp it</button>
     </div>`;
-}
-
-async function loadTrending() {
-  try {
-    st.trending = await M.ponsTrending();
-    st.trendingFailed = false;
-  } catch {
-    st.trendingFailed = !st.trending?.length;
-  }
-  if (route().page === "") renderKing();
 }
 
 // One delegated click handler for cards / buttons anywhere.
@@ -738,53 +785,107 @@ function renderVampHistory() {
     </div>`).join("") : `<div class="empty">Nothing vamped yet.</div>`;
 }
 
-// ── portfolio ───────────────────────────────────────────────────────────────
-async function renderPortfolio() {
-  const a = addrOf(st.conn);
+// ── profile (creator fees, launches, holdings) ──────────────────────────────
+const identicon = (a) => {
+  const h = hue(a.toLowerCase());
+  return `background:conic-gradient(from ${h}deg, hsl(${h} 75% 55%), hsl(${(h + 120) % 360} 70% 45%), hsl(${(h + 240) % 360} 75% 55%), hsl(${h} 75% 55%))`;
+};
+
+async function renderProfile(arg) {
+  const me = addrOf(st.conn);
+  const a = arg && /^0x[a-fA-F0-9]{40}$/.test(arg) ? arg : me;
   if (!a) {
     app.innerHTML = `<div class="panel empty" style="padding:60px">
-      <h2 style="justify-content:center;margin-bottom:10px">Connect to see your portfolio</h2>
-      <p class="muted">Holdings, your launches and claimable creator fees.</p>
+      <div class="pf-av" style="margin:0 auto 14px;background:var(--panel2)"></div>
+      <h2 style="justify-content:center;margin-bottom:10px">Connect to open your profile</h2>
+      <p class="muted">Claim creator fees from your Pons launches, see your launches and holdings.</p>
       <button class="btn primary" id="pfConnect">Connect wallet</button></div>`;
-    $("#pfConnect").onclick = () => connect().then(renderPortfolio).catch((e) => toast(errMsg(e), "err"));
+    $("#pfConnect").onclick = () => connect().then(() => renderProfile()).catch((e) => toast(errMsg(e), "err"));
     return;
   }
+  const own = me && me.toLowerCase() === a.toLowerCase();
   app.innerHTML = `
-  <section class="pf">
-    <div style="display:grid;gap:22px">
-      <div class="panel section">
-        <span class="muted">Wallet</span>
-        <div class="mono">${short(a)} <a href="${scan("address/" + a)}" target="_blank" rel="noopener" class="muted">↗</a></div>
-        <div class="big-num" id="pfBal">…</div>
-      </div>
-      <div class="panel section">
-        <span class="muted">Claimable creator fees</span>
-        <div class="big-num" id="pfFees">…</div>
-        <button class="btn primary" id="pfClaim" disabled>Claim</button>
+  <section class="panel pf-head">
+    <div class="pf-av" style="${identicon(a)}"></div>
+    <div style="min-width:0">
+      <div class="muted" style="font-size:12px">${own ? "Your profile" : "Profile"}</div>
+      <h1 class="mono pf-addr">${short(a)}</h1>
+      <div class="links">
+        <a href="#" data-copy="${a}">📋 Copy address</a>
+        <a href="${scan("address/" + a)}" target="_blank" rel="noopener">Blockscout ↗</a>
+        <a href="#" id="pfShare">🔗 Share profile</a>
       </div>
     </div>
-    <div style="display:grid;gap:22px">
-      <div class="panel section"><h2>Holdings</h2><div class="list" id="pfHold"><div class="skel"></div></div></div>
-      <div class="panel section"><h2>Your launches</h2><div class="list" id="pfLaunch"><div class="skel"></div></div></div>
+    <div class="pf-bal"><span class="muted">Balance</span><b id="pfBal">…</b></div>
+  </section>
+  <section class="pf">
+    <div style="display:grid;gap:22px;align-content:start">
+      <div class="panel section fee-card">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h2>💰 Creator fees</h2><button class="btn sm ghost" id="pfRefresh">↻</button></div>
+        <span class="muted">Ready to claim</span>
+        <div class="big-num" id="pfFees">…</div>
+        <div class="muted" id="pfFeesUsd" style="margin-top:-8px"></div>
+        ${own ? `<button class="btn primary" id="pfClaim" disabled>Claim fees</button>` : `<div class="muted" style="font-size:12px">Only the owner of this wallet can claim.</div>`}
+        <div class="muted" style="font-size:12px">Every trade on a token you launched on Pons pays you a creator fee (plus any creator tax). Pons keeps it in its fee escrow until you claim; it is sent to this wallet in ETH.</div>
+      </div>
+      <div class="panel section">
+        <h2>Stats</h2>
+        <div class="kv" style="grid-template-columns:1fr 1fr">
+          <div><span>Launches</span><b id="pfNLaunch">…</b></div>
+          <div><span>On curve</span><b id="pfNLive">…</b></div>
+          <div><span>Holdings</span><b id="pfNHold">…</b></div>
+          <div><span>Vamps here</span><b>${own ? vampHistory.length : "—"}</b></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;gap:22px;align-content:start">
+      <div class="panel section"><h2>🚀 Launches</h2><div class="list" id="pfLaunch"><div class="skel"></div></div></div>
+      <div class="panel section"><h2>👜 Holdings</h2><div class="list" id="pfHold"><div class="skel"></div></div></div>
     </div>
   </section>`;
-  client.getBalance({ address: a }).then((b) => ($("#pfBal").textContent = eth(b, 4))).catch(() => {});
-  M.claimable(client, a).then((f) => {
-    $("#pfFees").textContent = eth(f, 5);
-    $("#pfClaim").disabled = !f;
-    $("#pfClaim").onclick = async () => {
-      $("#pfClaim").disabled = true;
-      try { const h = await M.claimFees({ client, wallet: st.conn.wallet, account: st.conn.account }); toast(`✅ Fees claimed${txLink(h)}`, "ok"); renderPortfolio(); }
-      catch (e) { toast(`❌ ${errMsg(e)}`, "err"); $("#pfClaim").disabled = false; }
+  $("#pfShare").onclick = (e) => {
+    e.preventDefault();
+    const url = `${location.origin}${location.pathname}#/profile/${a}`;
+    navigator.clipboard?.writeText(url);
+    toast("Profile link copied", "ok", 2500);
+  };
+  client.getBalance({ address: a }).then((b) => $("#pfBal") && ($("#pfBal").textContent = eth(b, 4))).catch(() => {});
+
+  const loadFees = () => M.claimable(client, a).then((f) => {
+    if (!$("#pfFees")) return;
+    $("#pfFees").textContent = eth(f, 6);
+    $("#pfFeesUsd").textContent = st.ethUsd ? `≈ $${(Number(formatEther(f)) * st.ethUsd).toFixed(2)}` : "";
+    const btn = $("#pfClaim");
+    if (!btn) return;
+    btn.disabled = !f;
+    btn.textContent = f ? `Claim ${eth(f, 6)}` : "Nothing to claim yet";
+    btn.onclick = async () => {
+      btn.disabled = true;
+      btn.textContent = "Confirm in wallet…";
+      try {
+        const h = await M.claimFees({ client, wallet: st.conn.wallet, account: st.conn.account });
+        toast(`✅ Claimed ${eth(f, 6)}${txLink(h)}`, "ok", 9000);
+        refreshWallet();
+        renderProfile(arg);
+      } catch (e) {
+        toast(`❌ ${errMsg(e)}${txLink(e.hash)}`, "err", 9000);
+        btn.disabled = false;
+        btn.textContent = `Claim ${eth(f, 6)}`;
+      }
     };
-  }).catch(() => ($("#pfFees").textContent = "—"));
+  }).catch(() => $("#pfFees") && ($("#pfFees").textContent = "—"));
+  loadFees();
+  $("#pfRefresh").onclick = loadFees;
 
   // launches by this wallet (deployer is an indexed topic, so this is one cheap scan)
-  M.fetchRecentLaunches(client, { want: 50, maxChunks: 200, deployer: a }).then(async ({ launches }) => {
+  M.fetchRecentLaunches(client, { want: 50, maxChunks: 320, deployer: a }).then(async ({ launches }) => {
     const list = launches.map((t) => addToken(t));
     await Promise.all(list.map((t) => (t.name ? M.loadLive(client, t) : M.loadMeta(client, t).then(() => M.loadLive(client, t)))));
-    $("#pfLaunch").innerHTML = list.length ? list.map(row).join("") : `<div class="empty">No Pons v2 launches from this wallet in recent history. <a href="#/vamp" style="color:var(--accent2)">Vamp one →</a></div>`;
-  }).catch((e) => ($("#pfLaunch").innerHTML = `<div class="empty">${errMsg(e)}</div>`));
+    if (!$("#pfLaunch")) return;
+    $("#pfNLaunch").textContent = list.length;
+    $("#pfNLive").textContent = list.filter((t) => t.phase === 0).length;
+    $("#pfLaunch").innerHTML = list.length ? list.map((t) => row(t)).join("") : `<div class="empty">No Pons v2 launches from this wallet in recent history. <a href="#/vamp" style="color:var(--accent2)">Vamp one →</a></div>`;
+  }).catch((e) => $("#pfLaunch") && ($("#pfLaunch").innerHTML = `<div class="empty">${errMsg(e)}</div>`));
 
   // holdings among every token we know about
   const known = [...st.tokens.values()];
@@ -792,6 +893,7 @@ async function renderPortfolio() {
   const held = known.map((t, i) => ({ t, bal: bals[i] })).filter((x) => x.bal > 0n)
     .map((x) => ({ ...x, val: (x.t.priceEth || 0) * Number(formatUnits(x.bal, 18)) }))
     .sort((p, q) => q.val - p.val);
+  $("#pfNHold") && ($("#pfNHold").textContent = held.length);
   $("#pfHold") && ($("#pfHold").innerHTML = held.length
     ? held.map(({ t, bal, val }) => row(t, `${compact(Number(formatUnits(bal, 18)))} · ${usd(val)}`)).join("")
     : `<div class="empty">No balances in tracked Pons tokens.</div>`);
@@ -889,8 +991,8 @@ Promise.all([
 ]).then(([fee, maxTax]) => { st.launchFee = fee; $("#maxTax").textContent = String(maxTax); updateStats(); }).catch(() => {});
 updatePrices().then(() => route().page === "" && renderDiscoverLists());
 initialLoad().catch((e) => toast(`Could not load launches: ${errMsg(e)}`, "err", 12000));
-loadTrending();
-setInterval(loadTrending, 30000);
+loadPonsBoards();
+setInterval(loadPonsBoards, 20000);
 setInterval(pollLaunches, 6000);
 setInterval(pollTrades, 5000);
 setInterval(pollLive, 15000);

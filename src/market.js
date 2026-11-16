@@ -32,18 +32,21 @@ const CHUNK = 50_000n; // ~85 min of blocks per getLogs call
 /** Walk back from head until `want` launches are found (or `maxChunks` ranges scanned). */
 export async function fetchRecentLaunches(client, { want = 90, maxChunks = 60, deployer } = {}) {
   const head = await client.getBlockNumber();
-  const out = [];
-  let to = head;
-  for (let i = 0; i < maxChunks && out.length < want && to > 0n; i++) {
-    const from = to > CHUNK ? to - CHUNK + 1n : 0n;
-    const logs = await client.getLogs({
-      address: PONS_V2_FACTORY, event: launchedEvent, fromBlock: from, toBlock: to,
-      args: deployer ? { deployer } : undefined,
-    });
-    out.unshift(...logs);
-    to = from - 1n;
+  const out = []; // newest first
+  const PAR = 8;  // ranges fetched in parallel per round
+  for (let i = 0; i < maxChunks && out.length < want; i += PAR) {
+    const ranges = [];
+    for (let j = i; j < Math.min(i + PAR, maxChunks); j++) {
+      const to = head - CHUNK * BigInt(j);
+      if (to <= 0n) break;
+      ranges.push([to > CHUNK ? to - CHUNK + 1n : 0n, to]);
+    }
+    if (!ranges.length) break;
+    const parts = await Promise.all(ranges.map(([fromBlock, toBlock]) =>
+      client.getLogs({ address: PONS_V2_FACTORY, event: launchedEvent, fromBlock, toBlock, args: deployer ? { deployer } : undefined })));
+    for (const logs of parts) out.push(...logs.slice().reverse());
   }
-  return { head, launches: out.reverse().map(toLaunch) };
+  return { head, launches: out.map(toLaunch) };
 }
 
 /** New launches since `fromBlock` (inclusive). */
@@ -157,6 +160,13 @@ export async function ponsTrending() {
   if (!r.ok) throw new Error(`Pons trending HTTP ${r.status}`);
   const d = await r.json();
   return (d.items || []).filter((x) => x?.launch?.address);
+}
+
+/** Pons board query, e.g. { stage: "curve", sort: "progress" } (sort: newest | active | progress | marketCap). */
+export async function ponsLaunches(params) {
+  const r = await fetch(`/pons-api/launches?${new URLSearchParams({ limit: "60", ...params })}`);
+  if (!r.ok) throw new Error(`Pons board HTTP ${r.status}`);
+  return (await r.json()).items || [];
 }
 
 // ── quotes (the curve's own integer arithmetic, from the Pons docs) ─────────

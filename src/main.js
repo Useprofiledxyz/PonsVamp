@@ -29,6 +29,40 @@ let chain = makeChain(S.rpc);
 let client = makePublicClient(chain);
 
 // ── app state ───────────────────────────────────────────────────────────────
+// Official $VAMP token (Pons v2 launch).
+const VAMP_CA = "0x02c3af333295d0d8627e71de8a17b63803a50d34";
+
+async function loadVampToken() {
+  try {
+    const l = await client.readContract({ address: PONS_V2_FACTORY, abi: factoryAbi, functionName: "getLaunchedToken", args: [VAMP_CA] });
+    const k = VAMP_CA.toLowerCase();
+    const t = st.tokens.get(k) || { token: l.token, curve: l.curve, deployer: l.deployer, threshold: l.graduationThreshold };
+    if (!t.name) await M.loadMeta(client, t);
+    await M.loadLive(client, t);
+    if (!st.tokens.has(k)) { st.tokens.set(k, t); st.byCurve.set(t.curve.toLowerCase(), t); }
+    st.vampToken = t;
+    renderVampToken();
+  } catch {}
+}
+
+function renderVampToken() {
+  const el = document.getElementById("vampTok");
+  const t = st.vampToken;
+  if (!el || !t) return;
+  const pct = t.phase === 2 ? 100 : ((t.progress || 0) * 100).toFixed(1);
+  el.innerHTML = `
+    ${avatar(t, "av", 52)}
+    <div class="vt-meta">
+      <div class="vt-top"><span class="vt-label">Official token</span><b>$${esc(t.symbol)}</b><span class="muted">MC ${mcap(t)} · ${pct}%</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <a href="#" class="vt-ca mono" data-copy="${VAMP_CA}">${VAMP_CA}</a>
+    </div>
+    <div class="vt-acts">
+      <a class="btn sm primary" href="/token/${VAMP_CA}">Buy $${esc(t.symbol)}</a>
+      <button class="btn sm" data-copy="${VAMP_CA}">Copy CA</button>
+    </div>`;
+}
+
 const st = {
   tokens: new Map(),   // token address (lowercase) → token object
   byCurve: new Map(),  // curve address (lowercase) → token object
@@ -181,7 +215,7 @@ async function pollLive() {
   const r = route();
   const list = r.page === "token"
     ? [st.tokens.get(r.arg?.toLowerCase())].filter(Boolean)
-    : [...new Set([...st.order.slice(0, 240), ...(st.grad || []), ...(st.trendingCurve || [])])];
+    : [...new Set([st.vampToken, ...st.order.slice(0, 240), ...(st.grad || []), ...(st.trendingCurve || [])].filter(Boolean))];
   await Promise.all(list.map((t) => M.loadLive(client, t))).catch(() => {});
   if (r.page === "") renderDiscoverLists();
   if (r.page === "token") renderTokenLive();
@@ -282,6 +316,7 @@ function renderDiscover() {
         <p>Paste a contract address and hit <kbd>Enter</kbd>. Name, ticker, logo, socials get cloned and launched on Pons in one transaction.</p>
         <input id="heroCA" class="big" placeholder="Paste CA or any link with a CA…" autocomplete="off" spellcheck="false">
         <div class="stats" id="stats"></div>
+        <div class="vamp-tok" id="vampTok" data-token="${VAMP_CA}"></div>
       </div>
       <div class="panel king" id="king"></div>
     </section>
@@ -306,6 +341,7 @@ function renderDiscover() {
   $("#search").addEventListener("input", (e) => { st.filter = e.target.value; renderDiscoverLists(); });
   renderDiscoverLists();
   updateStats();
+  renderVampToken();
 }
 
 function updateStats() {
@@ -1050,6 +1086,8 @@ setInterval(loadPonsBoards, 8000);
 setInterval(pollLaunches, 2500);
 setInterval(pollTrades, 5000);
 setInterval(pollLive, 10000);
+loadVampToken();
+setInterval(() => st.vampToken && M.loadLive(client, st.vampToken).then(renderVampToken).catch(() => {}), 10000);
 setInterval(updatePrices, 60000);
 setInterval(refreshGraduated, 60000);
 if (S.wallet === "burner" && S.burner) connect().catch(() => {});

@@ -30,7 +30,7 @@ let client = makePublicClient(chain);
 
 // ── app state ───────────────────────────────────────────────────────────────
 // Official $VAMP token (Pons v2 launch).
-const VAMP_CA = "soon";
+const VAMP_CA = "0x6c103de398e0f3806e8018e0f672c2bcf4165d28";
 
 async function loadVampToken() {
   try {

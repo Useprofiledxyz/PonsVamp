@@ -215,12 +215,27 @@ async function updatePrices() {
 }
 
 // ── routing ─────────────────────────────────────────────────────────────────
+// Clean URLs (/vamp, /profile, /token/0x…) via the History API. Vercel serves
+// index.html for every path (vercel.json), Vite does the same in dev/preview.
 function route() {
-  const [, page = "", arg] = location.hash.replace(/^#/, "").split("/");
+  const [, page = "", arg] = location.pathname.split("/");
   return { page, arg };
 }
-function go(hash) { if (location.hash !== hash) location.hash = hash; else render(); }
-window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
+function go(path) {
+  if (location.pathname !== path) history.pushState(null, "", path);
+  render();
+  window.scrollTo(0, 0);
+}
+window.addEventListener("popstate", () => render());
+// Old links like /#/token/0x… keep working.
+if (location.hash.startsWith("#/")) history.replaceState(null, "", location.hash.slice(1));
+// Same-tab internal links go through the router instead of reloading the page.
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("a[href^='/']");
+  if (!a || a.target || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  go(a.getAttribute("href"));
+});
 function render() {
   const r = route();
   $$("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === r.page));
@@ -241,7 +256,7 @@ function renderTicker() {
 }
 $("#tickerTrack").addEventListener("click", (e) => {
   const el = e.target.closest("[data-token]");
-  if (el) go(`#/token/${el.dataset.token}`);
+  if (el) go(`/token/${el.dataset.token}`);
 });
 
 // ── discover ────────────────────────────────────────────────────────────────
@@ -268,12 +283,12 @@ function renderDiscover() {
     </section>`;
   $("#heroCA").addEventListener("paste", (e) => {
     const ca = extractCA(e.clipboardData?.getData("text"));
-    if (ca) { e.preventDefault(); go(`#/vamp/${ca}`); }
+    if (ca) { e.preventDefault(); go(`/vamp/${ca}`); }
   });
   $("#heroCA").addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
     const ca = extractCA(e.target.value);
-    if (ca) go(`#/vamp/${ca}`); else toast("No valid CA in that text.", "err");
+    if (ca) go(`/vamp/${ca}`); else toast("No valid CA in that text.", "err");
   });
   $("#search").addEventListener("input", (e) => { st.filter = e.target.value; renderDiscoverLists(); });
   renderDiscoverLists();
@@ -438,14 +453,14 @@ app.addEventListener("click", (e) => {
   const q = e.target.closest("[data-qbuy]");
   if (q) { e.stopPropagation(); return quickBuy(q.dataset.qbuy, q); }
   const v = e.target.closest("[data-vamp]");
-  if (v) { e.stopPropagation(); return go(`#/vamp/${v.dataset.vamp}`); }
+  if (v) { e.stopPropagation(); return go(`/vamp/${v.dataset.vamp}`); }
   const c = e.target.closest("[data-token]");
-  if (c && !e.target.closest("a, button, input")) go(`#/token/${c.dataset.token}`);
+  if (c && !e.target.closest("a, button, input")) go(`/token/${c.dataset.token}`);
 });
 
 async function quickBuy(token, btn) {
   const t = st.tokens.get(token.toLowerCase());
-  if (!t) return go(`#/token/${token}`);
+  if (!t) return go(`/token/${token}`);
   btn && (btn.disabled = true);
   try {
     await ensureConn();
@@ -473,7 +488,7 @@ async function renderToken(addr) {
     try {
       const launched = await client.readContract({ address: PONS_V2_FACTORY, abi: factoryAbi, functionName: "getLaunchedToken", args: [addr] });
       if (!launched.exists) {
-        app.innerHTML = `<div class="panel empty">Not a Pons v2 launch. <a class="btn primary" href="#/vamp/${esc(addr)}" style="margin-left:8px">🧛 Vamp it instead</a></div>`;
+        app.innerHTML = `<div class="panel empty">Not a Pons v2 launch. <a class="btn primary" href="/vamp/${esc(addr)}" style="margin-left:8px">🧛 Vamp it instead</a></div>`;
         return;
       }
       t = { token: launched.token, curve: launched.curve, deployer: launched.deployer, threshold: launched.graduationThreshold, block: st.head };
@@ -760,7 +775,7 @@ async function vamp() {
     vampHistory.unshift({ ...res, name: meta.name, symbol: meta.symbol, logo: meta.logo, from: src.ca, at: Date.now() });
     vampHistory = vampHistory.slice(0, 100);
     save("ponsvamp.history", vampHistory);
-    vstatus(`✅ Launched <b>$${esc(meta.symbol)}</b> → <a href="#/token/${res.token}" style="color:var(--accent2)">${short(res.token)}</a>${txLink(res.hash)}`, "ok");
+    vstatus(`✅ Launched <b>$${esc(meta.symbol)}</b> → <a href="/token/${res.token}" style="color:var(--accent2)">${short(res.token)}</a>${txLink(res.hash)}`, "ok");
     toast(`🧛 $${esc(meta.symbol)} is live${txLink(res.hash)}`, "ok", 9000);
     renderVampHistory();
     $("#ca").value = ""; st.vamp = null; $("#preview").classList.add("hidden"); $("#ca").focus();
@@ -781,7 +796,7 @@ function renderVampHistory() {
     <div class="item">
       ${avatar({ logo: h.logo, symbol: h.symbol, token: h.token })}
       <div style="flex:1;min-width:0"><b>$${esc(h.symbol)}</b> <span class="muted">${esc(h.name)}</span><div class="muted mono" style="font-size:11px">from ${short(h.from)}</div></div>
-      ${h.token ? `<a class="btn sm" href="#/token/${h.token}">Open</a>` : ""}
+      ${h.token ? `<a class="btn sm" href="/token/${h.token}">Open</a>` : ""}
     </div>`).join("") : `<div class="empty">Nothing vamped yet.</div>`;
 }
 
@@ -845,7 +860,7 @@ async function renderProfile(arg) {
   </section>`;
   $("#pfShare").onclick = (e) => {
     e.preventDefault();
-    const url = `${location.origin}${location.pathname}#/profile/${a}`;
+    const url = `${location.origin}/profile/${a}`;
     navigator.clipboard?.writeText(url);
     toast("Profile link copied", "ok", 2500);
   };
@@ -884,7 +899,7 @@ async function renderProfile(arg) {
     if (!$("#pfLaunch")) return;
     $("#pfNLaunch").textContent = list.length;
     $("#pfNLive").textContent = list.filter((t) => t.phase === 0).length;
-    $("#pfLaunch").innerHTML = list.length ? list.map((t) => row(t)).join("") : `<div class="empty">No Pons v2 launches from this wallet in recent history. <a href="#/vamp" style="color:var(--accent2)">Vamp one →</a></div>`;
+    $("#pfLaunch").innerHTML = list.length ? list.map((t) => row(t)).join("") : `<div class="empty">No Pons v2 launches from this wallet in recent history. <a href="/vamp" style="color:var(--accent2)">Vamp one →</a></div>`;
   }).catch((e) => $("#pfLaunch") && ($("#pfLaunch").innerHTML = `<div class="empty">${errMsg(e)}</div>`));
 
   // holdings among every token we know about
@@ -903,7 +918,7 @@ function row(t, extra) {
     ${avatar(t)}
     <div style="flex:1;min-width:0"><b>${esc(t.name)}</b> <span class="muted">$${esc(t.symbol)}</span>
       <div class="muted" style="font-size:12px">${extra ?? `MC ${usd(t.mcapEth)} · ${Math.round((t.progress || 0) * 100)}%`}</div></div>
-    <a class="btn sm" href="#/token/${t.token}">Trade</a>
+    <a class="btn sm" href="/token/${t.token}">Trade</a>
   </div>`;
 }
 
@@ -913,14 +928,14 @@ $("#quickCA").addEventListener("keydown", (e) => {
   const ca = extractCA(e.target.value);
   if (!ca) return toast("No valid CA in that text.", "err");
   e.target.value = "";
-  go(`#/vamp/${ca}`);
+  go(`/vamp/${ca}`);
 });
 $("#quickCA").addEventListener("paste", (e) => {
   const ca = extractCA(e.clipboardData?.getData("text"));
   if (!ca) return;
   e.preventDefault();
   e.target.value = "";
-  go(`#/vamp/${ca}`);
+  go(`/vamp/${ca}`);
 });
 // Ctrl/Cmd+V anywhere (outside inputs) → vamp that CA
 document.addEventListener("paste", (e) => {
@@ -929,7 +944,7 @@ document.addEventListener("paste", (e) => {
   if (!ca) return;
   e.preventDefault();
   if (route().page === "vamp" && $("#ca")) { $("#ca").value = ca; $("#ca").focus(); loadCA(ca, { autoLaunch: S.insta }); }
-  else go(`#/vamp/${ca}`);
+  else go(`/vamp/${ca}`);
 });
 // Enter = vamp on the vamp page
 document.addEventListener("keydown", (e) => {

@@ -4,54 +4,41 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pons Vamp</title>
+    <meta name="description" content="Paste a CA, press Enter, vamp it on Pons. Live Robinhood Chain launchpad feed, quick buy/sell and creator fees." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <header>
-      <div class="brand"><img src="/logo.svg" alt="" class="logo" /> <b>PONS VAMP</b> <span class="muted">· Robinhood Chain</span></div>
+    <header class="top">
+      <a href="#/" class="brand"><img src="/logo.svg" alt="" class="logo" /><span>PONS<b>VAMP</b></span></a>
+      <nav id="nav">
+        <a href="#/" data-route="">Discover</a>
+        <a href="#/vamp" data-route="vamp">🧛 Vamp</a>
+        <a href="#/me" data-route="me">Portfolio</a>
+      </nav>
+      <div class="quick">
+        <input id="quickCA" placeholder="Paste CA → Enter to vamp" autocomplete="off" spellcheck="false" />
+      </div>
       <div class="wallet">
-        <span id="walletInfo" class="muted">not connected</span>
-        <button id="connectBtn">Connect</button>
-        <button id="settingsBtn" title="Settings">⚙</button>
+        <span id="ethPrice" class="pill muted"></span>
+        <button id="connectBtn" class="btn">Connect</button>
+        <button id="settingsBtn" class="btn icon" title="Settings">⚙</button>
       </div>
     </header>
 
-    <main>
-      <section class="paste">
-        <input id="ca" autocomplete="off" spellcheck="false"
-          placeholder="Paste CA (or any link with a CA) → Enter to vamp" autofocus />
-        <label class="insta"><input type="checkbox" id="insta" /> Insta-vamp <span class="muted">(launch on paste)</span></label>
-      </section>
+    <div id="ticker" class="ticker"><div class="track" id="tickerTrack"></div></div>
 
-      <section id="preview" class="card hidden">
-        <img id="pLogo" alt="" />
-        <div class="fields">
-          <div class="row">
-            <label>Name <input id="pName" /></label>
-            <label class="sym">Ticker <input id="pSymbol" /></label>
-          </div>
-          <label>Logo URL <input id="pLogoUrl" /></label>
-          <label>Description <textarea id="pDesc" rows="2"></textarea></label>
-          <div class="row socials">
-            <label>X <input id="sTwitter" /></label>
-            <label>TG <input id="sTelegram" /></label>
-            <label>Web <input id="sWebsite" /></label>
-          </div>
-          <div class="row foot">
-            <span id="pSource" class="tag"></span>
-            <button id="vampBtn" class="primary">VAMP ⏎</button>
-          </div>
-        </div>
-      </section>
+    <main id="app"></main>
 
-      <section id="status" class="status"></section>
+    <footer class="foot">
+      <span>Pons Vamp · Robinhood Chain (4663) · reads straight from the Pons v2 contracts</span>
+      <span class="muted">Not affiliated with Pons. Memecoins are risky; trade what you can lose.</span>
+    </footer>
 
-      <section>
-        <h3>Launched</h3>
-        <ul id="history"></ul>
-      </section>
-    </main>
+    <div id="toasts"></div>
 
     <dialog id="settings">
       <form method="dialog">
@@ -66,17 +53,23 @@
           <input id="optBurner" type="password" placeholder="0x…" autocomplete="off" />
           <small class="warn">Stored in this browser's localStorage. Only use a hot wallet with small funds.</small>
         </label>
-        <label>Dev buy (ETH, 0 = none) <input id="optDevBuy" type="number" min="0" step="0.001" /></label>
-        <label>Creator tax (bps, 0–<span id="maxTax">1000</span>) <input id="optTax" type="number" min="0" step="1" /></label>
+        <div class="grid2">
+          <label>Quick buy (ETH) <input id="optQuickBuy" type="number" min="0" step="0.001" /></label>
+          <label>Slippage (%) <input id="optSlippage" type="number" min="0.1" max="50" step="0.1" /></label>
+        </div>
+        <h4>Vamp</h4>
+        <div class="grid2">
+          <label>Dev buy (ETH, 0 = none) <input id="optDevBuy" type="number" min="0" step="0.001" /></label>
+          <label>Creator tax (bps, 0–<span id="maxTax">1000</span>) <input id="optTax" type="number" min="0" step="1" /></label>
+        </div>
         <label class="inline"><input type="checkbox" id="optBuyback" /> Buyback enabled</label>
         <label class="inline"><input type="checkbox" id="optCopySocials" /> Copy socials from source</label>
         <label class="inline"><input type="checkbox" id="optCopyDesc" /> Copy description from source</label>
         <label>Ticker prefix / suffix
-          <span class="row"><input id="optPrefix" placeholder="prefix" /><input id="optSuffix" placeholder="suffix" /></span>
+          <span class="grid2"><input id="optPrefix" placeholder="prefix" /><input id="optSuffix" placeholder="suffix" /></span>
         </label>
         <label>RPC URL <input id="optRpc" /></label>
-        <label>Pons token link template <input id="optLink" /></label>
-        <menu><button value="save" class="primary">Save</button></menu>
+        <menu><button value="cancel" class="btn">Cancel</button><button value="save" class="btn primary">Save</button></menu>
       </form>
     </dialog>
 

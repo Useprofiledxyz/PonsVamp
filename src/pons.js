@@ -25,6 +25,7 @@ export function makeChain(rpc = DEFAULT_RPC) {
     blockExplorers: {
       default: { name: "Blockscout", url: "https://robinhoodchain.blockscout.com" },
     },
+    contracts: { multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" } },
   });
 }
 
@@ -32,6 +33,7 @@ export function makeChain(rpc = DEFAULT_RPC) {
 export const PONS_V2_FACTORY = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
 export const PONS_V2_LAUNCH_AND_BUY = "0xe33E9E479dF8802cb0866d5d05258bEc4cF62948";
 export const PONS_V1_FACTORY = "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB";
+export const PONS_V2_FEE_ESCROW = "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e";
 
 const SOCIALS = "struct Socials { string twitter; string telegram; string discord; string website; string farcaster; }";
 const TOKEN_PARAMS =
@@ -49,6 +51,8 @@ export const factoryAbi = parseAbi([
   "function launchConfigCount() view returns (uint256)",
   "function getLaunchConfig(uint256 id) view returns (LaunchConfig)",
   "event TokenLaunched(address indexed token, address indexed curve, address indexed deployer, address pairToken, uint256 launchConfigId, uint256 graduationThreshold)",
+  "struct LaunchedToken { address token; address curve; address deployer; address creatorFeeRecipient; address pairToken; uint256 graduationThreshold; uint24 poolFee; int24 tickSpacing; uint16 creatorTaxBps; bool buybackEnabled; uint8 phase; uint256 sweptQuote; uint256 sweptTokens; uint256 sweptAt; bool exists; }",
+  "function getLaunchedToken(address token) view returns (LaunchedToken)",
 ]);
 
 export const routerAbi = parseAbi([
@@ -61,7 +65,7 @@ const erc20Abi = parseAbi([
   "function name() view returns (string)",
   "function symbol() view returns (string)",
 ]);
-const v2TokenAbi = parseAbi([
+export const v2TokenAbi = parseAbi([
   SOCIALS,
   "function getTokenInfo() view returns (address tokenDeployer, string tokenLogo, string tokenDescription, Socials tokenSocials)",
 ]);
@@ -246,5 +250,9 @@ export async function launchVamp({ client, wallet, account, meta, opts }) {
 }
 
 export function makePublicClient(chain) {
-  return createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
+  return createPublicClient({
+    chain,
+    transport: http(chain.rpcUrls.default.http[0], { retryCount: 2 }),
+    batch: { multicall: { batchSize: 4096, wait: 16 } },
+  });
 }

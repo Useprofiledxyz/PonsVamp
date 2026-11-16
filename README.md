@@ -3,6 +3,17 @@
 Vamp mode untuk [Pons](https://docs.ponsfamily.com/v2) di Robinhood Chain (chain id 4663).
 Paste CA → Enter → coin kembaran langsung launch di Pons v2.
 
+## Fitur
+
+- **Discover** — feed live semua launch Pons v2: *New launches*, *Heating up*, *Graduating*, plus **King of the curve**.
+  Tiap kartu: logo, market cap (USD), umur, progress bonding curve, creator tax, tombol **⚡ quick buy** dan **🧛 Vamp**.
+- **Ticker trade live** — setiap buy/sell di curve Pons muncul real-time di atas.
+- **Halaman token** — harga, market cap, ETH terkumpul, progress graduation, riwayat trade, link socials/explorer,
+  panel **Buy / Sell** dengan preset, quote akurat (pakai rumus curve Pons) dan slippage.
+- **Vamp mode** — paste CA → Enter → launch; Insta-vamp; edit nama/ticker/logo/socials sebelum launch.
+  Ctrl+V di mana saja di website langsung buka vamp untuk CA itu.
+- **Portfolio** — saldo, token yang kamu pegang, token yang kamu launch, dan **klaim creator fee** dari fee escrow Pons.
+
 ## Cara pakai
 
 ```bash

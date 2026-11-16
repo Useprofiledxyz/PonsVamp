@@ -1,7 +1,17 @@
 import { defineConfig } from "vite";
 
-// `preview` serves the built site in production (Railway); allow any host so the
-// generated *.up.railway.app domain (and custom domains) are accepted.
+// Pons' public API sends no CORS headers, so the browser reaches it through a
+// same-origin path: /pons-api/* → https://ponsfamily.com/api/*.
+// In production the same rewrite lives in vercel.json.
+const ponsProxy = {
+  "/pons-api": {
+    target: "https://ponsfamily.com",
+    changeOrigin: true,
+    rewrite: (p) => p.replace(/^\/pons-api/, "/api"),
+  },
+};
+
 export default defineConfig({
-  preview: { host: "0.0.0.0", allowedHosts: true },
+  server: { proxy: ponsProxy },
+  preview: { host: "0.0.0.0", allowedHosts: true, proxy: ponsProxy },
 });

@@ -115,6 +115,12 @@ h4 { margin: 8px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing
 .king .row { display: flex; gap: 14px; align-items: center; }
 .king .av { width: 76px; height: 76px; flex: 0 0 76px; border-radius: 16px; font-size: 28px; }
 .king .row > div { min-width: 0; }
+.trend-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tm { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 9px; background: var(--bg2); border: 1px solid var(--line); font-size: 12px; cursor: pointer; min-width: 0; }
+.tm:hover { border-color: #3a3a46; }
+.tm b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm > span:last-child { margin-left: auto; }
+.tmav { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; flex: 0 0 20px; display: grid; place-items: center; font-size: 10px; font-weight: 800; }
 .king .name { font-size: 22px; font-weight: 800; }
 
 /* ── columns ────────────────────────────────────────────── */

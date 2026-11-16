@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/pons-api/:path*", "destination": "https://ponsfamily.com/api/:path*" }
+  ]
+}

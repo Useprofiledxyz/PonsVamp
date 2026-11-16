@@ -148,6 +148,17 @@ export async function ethUsd() {
   }
 }
 
+/**
+ * Pons' own trending ranking (what ponsfamily.com shows). Served through a
+ * same-origin proxy (/pons-api → ponsfamily.com/api) because Pons sends no CORS headers.
+ */
+export async function ponsTrending() {
+  const r = await fetch("/pons-api/launches/trending");
+  if (!r.ok) throw new Error(`Pons trending HTTP ${r.status}`);
+  const d = await r.json();
+  return (d.items || []).filter((x) => x?.launch?.address);
+}
+
 // ── quotes (the curve's own integer arithmetic, from the Pons docs) ─────────
 const amountOut = (inAmt, rIn, rOut) => (inAmt * rOut) / (rIn + inAmt);
 

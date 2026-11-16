@@ -299,7 +299,7 @@ function card(t) {
       <div class="bar"><i style="width:${pct}%"></i></div>
     </div>
     <div class="acts">
-      ${t.phase === 0 ? `<button class="btn sm green" data-qbuy="${t.token}">⚡ ${esc(S.quickBuy)}</button>` : ""}
+      ${t.phase === 0 ? `<button class="btn sm green" data-qbuy="${t.token}">Buy ${esc(S.quickBuy)}</button>` : ""}
       <button class="btn sm" data-vamp="${t.token}">🧛 Vamp</button>
     </div>
   </div>`;
@@ -310,7 +310,7 @@ function renderDiscoverLists() {
   if (!st.loaded) {
     const sk = `<div class="skel"></div>`.repeat(6);
     $("#colNew").innerHTML = sk; $("#colHot").innerHTML = sk; $("#colGrad").innerHTML = sk;
-    $("#king").innerHTML = `<div class="skel" style="height:100%"></div>`;
+    renderKing();
     return;
   }
   const all = st.order.filter(matches);
@@ -325,22 +325,56 @@ function renderDiscoverLists() {
   fill("#colHot", "#cHot", hot, "Nothing heating up yet.");
   fill("#colGrad", "#cGrad", grad, "Nothing past 35% yet.");
 
-  const king = st.order.filter((t) => t.phase === 0).sort((a, b) => b.progress - a.progress)[0];
-  if (king) {
-    const pct = (king.progress * 100).toFixed(1);
-    $("#king").dataset.token = king.token;
-    $("#king").innerHTML = `
-      <div class="label">👑 King of the curve</div>
-      <div class="row">${avatar(king)}<div><div class="name">${esc(king.name)}</div><div class="muted">$${esc(king.symbol)} · ${ago(king.block)} old</div></div></div>
-      <div class="muted" style="display:flex;justify-content:space-between"><span>Bonding curve</span><b style="color:var(--text)">${pct}%</b></div>
-      <div class="bar big"><i style="width:${pct}%"></i></div>
-      <div class="kv" style="grid-template-columns:1fr 1fr">
-        <div><span>Market cap</span><b>${usd(king.mcapEth)}</b></div>
-        <div><span>Raised</span><b>${eth(king.raised, 3)}</b></div>
-      </div>
-      <div class="row"><button class="btn green" data-qbuy="${king.token}">⚡ Buy ${esc(S.quickBuy)} Ξ</button><button class="btn" data-vamp="${king.token}">🧛 Vamp it</button></div>`;
-  }
+  renderKing();
   updateStats();
+}
+
+// King = #1 on Pons' own trending list (ponsfamily.com/api/launches/trending).
+function renderKing() {
+  const el = $("#king");
+  if (!el) return;
+  const list = st.trending || [];
+  if (!list.length) {
+    el.innerHTML = st.trendingFailed
+      ? `<div class="label">👑 King of Pons</div><div class="empty">Pons trending is unavailable right now.</div>`
+      : `<div class="skel" style="height:100%"></div>`;
+    return;
+  }
+  const [k, ...rest] = list;
+  const L = k.launch;
+  const chg = k.change == null ? "" : `<span class="${k.change >= 0 ? "up" : "down"}">${k.change >= 0 ? "+" : ""}${(k.change * 100).toFixed(1)}%</span>`;
+  const bonding = L.stage !== "graduated" && L.progress != null;
+  const pct = bonding ? (L.progress * (L.progress <= 1 ? 100 : 1)).toFixed(1) : null;
+  el.dataset.token = L.address;
+  el.innerHTML = `
+    <div class="label">👑 King of Pons <span class="muted" style="letter-spacing:0;text-transform:none;font-weight:500">· #1 trending on Pons</span></div>
+    <div class="row">${avatar({ logo: k.image || L.artwork, symbol: L.symbol, token: L.address })}
+      <div><div class="name">${esc(L.name)}</div><div class="muted">$${esc(L.symbol)} · ${esc(L.stage)} ${chg}</div></div></div>
+    ${bonding ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Bonding curve</span><b style="color:var(--text)">${pct}%</b></div><div class="bar big"><i style="width:${pct}%"></i></div>` : ""}
+    <div class="kv" style="grid-template-columns:repeat(3,1fr)">
+      <div><span>Market cap</span><b>${compact(L.marketCapUsd, "$")}</b></div>
+      <div><span>Volume</span><b>${compact(k.volumeUsd, "$")}</b></div>
+      <div><span>Traders</span><b>${k.traders ?? "—"}</b></div>
+    </div>
+    <div class="trend-mini">${rest.slice(0, 4).map((x, i) => `
+      <div class="tm" data-token="${x.launch.address}">
+        <span class="muted">#${i + 2}</span>${avatar({ logo: x.image || x.launch.artwork, symbol: x.launch.symbol, token: x.launch.address }, "tmav")}
+        <b>${esc(x.launch.symbol)}</b><span class="muted">${compact(x.launch.marketCapUsd, "$")}</span></div>`).join("")}
+    </div>
+    <div class="row">
+      ${bonding && L.curve ? `<button class="btn green" data-qbuy="${L.address}">Buy ${esc(S.quickBuy)} Ξ</button>` : `<a class="btn green" href="#/token/${L.address}" style="text-align:center">Trade</a>`}
+      <button class="btn" data-vamp="${L.address}">🧛 Vamp it</button>
+    </div>`;
+}
+
+async function loadTrending() {
+  try {
+    st.trending = await M.ponsTrending();
+    st.trendingFailed = false;
+  } catch {
+    st.trendingFailed = !st.trending?.length;
+  }
+  if (route().page === "") renderKing();
 }
 
 // One delegated click handler for cards / buttons anywhere.
@@ -355,7 +389,7 @@ app.addEventListener("click", (e) => {
 
 async function quickBuy(token, btn) {
   const t = st.tokens.get(token.toLowerCase());
-  if (!t) return;
+  if (!t) return go(`#/token/${token}`);
   btn && (btn.disabled = true);
   try {
     await ensureConn();
@@ -846,6 +880,8 @@ Promise.all([
 ]).then(([fee, maxTax]) => { st.launchFee = fee; $("#maxTax").textContent = String(maxTax); updateStats(); }).catch(() => {});
 updatePrices().then(() => route().page === "" && renderDiscoverLists());
 initialLoad().catch((e) => toast(`Could not load launches: ${errMsg(e)}`, "err", 12000));
+loadTrending();
+setInterval(loadTrending, 30000);
 setInterval(pollLaunches, 6000);
 setInterval(pollTrades, 5000);
 setInterval(pollLive, 15000);

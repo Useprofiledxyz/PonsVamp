@@ -70,6 +70,10 @@ function compact(n, pre = "") {
   return pre + n.toPrecision(3);
 }
 const usd = (eth) => (st.ethUsd && eth != null ? compact(eth * st.ethUsd, "$") : eth != null ? compact(eth) + " ETH" : "—");
+// Market cap text: Pons' own USD figure when we have it (covers non-ETH pairs), else ETH × price.
+const mcap = (t) => (t.mcapUsd != null ? compact(t.mcapUsd, "$") : usd(t.mcapEth));
+// Ethereum glyph (the diamond), drawn in currentColor so it fits any button or text color.
+const ETH = `<svg class="eth" viewBox="0 0 256 417" aria-label="ETH" role="img"><path fill="currentColor" d="M128 0 125 9.5v275.7l3 2.8 128-75.6z" opacity=".6"/><path fill="currentColor" d="M128 0 0 212.3l128 75.7V154.2z"/><path fill="currentColor" d="M128 312.2l-1.6 1.9v98.2l1.6 4.6 128-180.3z" opacity=".6"/><path fill="currentColor" d="M128 416.9V312.2L0 236.6z"/><path fill="currentColor" d="M128 288l128-75.7-128-58.1z" opacity=".25"/><path fill="currentColor" d="M0 212.3 128 288V154.2z" opacity=".75"/></svg>`;
 const eth = (wei, d = 4) => (wei == null ? "—" : Number(formatEther(wei)).toFixed(d).replace(/\.?0+$/, "") + " ETH");
 function priceStr(p) {
   if (p == null) return "—";
@@ -121,7 +125,7 @@ async function refreshWallet() {
   const a = addrOf(st.conn);
   if (!a) { $("#connectBtn").textContent = "Connect"; return; }
   const bal = await client.getBalance({ address: a }).catch(() => null);
-  $("#connectBtn").innerHTML = `${S.wallet === "burner" ? "🔥 " : ""}${short(a)}${bal != null ? ` · <span class="muted">${Number(formatEther(bal)).toFixed(3)} Ξ</span>` : ""}`;
+  $("#connectBtn").innerHTML = `${S.wallet === "burner" ? "🔥 " : ""}${short(a)}${bal != null ? ` · <span class="muted">${Number(formatEther(bal)).toFixed(3)} ${ETH}</span>` : ""}`;
 }
 $("#connectBtn").onclick = () => connect().catch((e) => toast(errMsg(e), "err"));
 async function ensureConn() { return st.conn || connect(); }
@@ -130,12 +134,15 @@ async function ensureConn() { return st.conn || connect(); }
 function addToken(t, { fresh = false } = {}) {
   const k = t.token.toLowerCase();
   if (st.tokens.has(k)) return st.tokens.get(k);
+  // Wall-clock launch time, so ages tick live and merge with Pons API items.
+  if (t.createdAt == null && t.block != null && st.head) t.createdAt = Date.now() / 1000 - Number(st.head - t.block) * BLOCK_SEC;
   st.tokens.set(k, t);
   st.byCurve.set(t.curve.toLowerCase(), t);
-  if (fresh) { st.order.unshift(t); st.freshUntil.set(k, Date.now() + 2500); }
+  if (fresh) { st.order.unshift(t); st.freshUntil.set(k, Date.now() + 3000); }
   else st.order.push(t);
   return t;
 }
+const sortOrder = () => st.order.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
 async function initialLoad() {
   const { head, launches } = await M.fetchRecentLaunches(client, { want: 240, maxChunks: 80 });
@@ -148,19 +155,25 @@ async function initialLoad() {
   refreshGraduated();
 }
 
+let pollingLaunches = false;
 async function pollLaunches() {
-  if (!st.loaded) return;
+  if (!st.loaded || pollingLaunches) return;
+  pollingLaunches = true;
   try {
     const { head, launches } = await M.fetchLaunchesSince(client, st.head + 1n);
     st.head = head;
     const fresh = launches.filter((t) => !st.tokens.has(t.token.toLowerCase()));
     if (fresh.length) {
-      await Promise.all(fresh.map((t) => M.loadMeta(client, t).then(() => M.loadLive(client, t))));
+      // Show as soon as name/logo are known; curve numbers follow on the next live tick.
+      await Promise.all(fresh.map((t) => M.loadMeta(client, t)));
+      fresh.forEach((t) => { t.phase = 0; t.progress = 0; });
       fresh.reverse().forEach((t) => addToken(t, { fresh: true }));
+      sortOrder();
       if (route().page === "") renderDiscoverLists();
       updateStats();
+      Promise.all(fresh.map((t) => M.loadLive(client, t))).then(() => route().page === "" && renderDiscoverLists());
     }
-  } catch {}
+  } catch {} finally { pollingLaunches = false; }
 }
 
 async function pollLive() {
@@ -168,7 +181,7 @@ async function pollLive() {
   const r = route();
   const list = r.page === "token"
     ? [st.tokens.get(r.arg?.toLowerCase())].filter(Boolean)
-    : [...new Set([...st.order.slice(0, 240), ...(st.hot || []), ...(st.grad || []), ...(st.trendingCurve || [])])];
+    : [...new Set([...st.order.slice(0, 240), ...(st.grad || []), ...(st.trendingCurve || [])])];
   await Promise.all(list.map((t) => M.loadLive(client, t))).catch(() => {});
   if (r.page === "") renderDiscoverLists();
   if (r.page === "token") renderTokenLive();
@@ -211,7 +224,7 @@ async function pollTrades() {
 
 async function updatePrices() {
   const p = await M.ethUsd();
-  if (p) { st.ethUsd = p; $("#ethPrice").textContent = `Ξ $${p.toFixed(0)}`; }
+  if (p) { st.ethUsd = p; $("#ethPrice").innerHTML = `${ETH} $${p.toFixed(0)}`; }
 }
 
 // ── routing ─────────────────────────────────────────────────────────────────
@@ -250,7 +263,7 @@ function renderTicker() {
   const items = st.trades.map((x) => `
     <span class="trade" data-token="${x.t.token}">
       ${avatar(x.t, "tav")}<b class="${x.buy ? "up" : "down"}">${x.buy ? "BUY" : "SELL"}</b>
-      ${esc(Number(formatEther(x.ethAmt)).toFixed(4))} Ξ <span class="muted">$${esc(x.t.symbol)}</span>
+      ${esc(Number(formatEther(x.ethAmt)).toFixed(4))} ${ETH} <span class="muted">$${esc(x.t.symbol)}</span>
     </span>`).join("");
   $("#tickerTrack").innerHTML = items ? items + items : `<span class="muted trade">Waiting for live trades…</span>`;
 }
@@ -278,8 +291,8 @@ function renderDiscover() {
     </section>
     <section class="cols">
       <div class="panel col"><div class="col-head"><h2><span class="dot"></span> New launches</h2><span class="muted" id="cNew"></span></div><div class="col-body" id="colNew"></div></div>
-      <div class="panel col"><div class="col-head"><h2>🔥 Heating up</h2><span class="muted" id="cHot"></span></div><div class="col-body" id="colHot"></div></div>
-      <div class="panel col"><div class="col-head"><h2>🎓 Graduating</h2><span class="muted" id="cGrad"></span></div><div class="col-body" id="colGrad"></div></div>
+      <div class="panel col"><div class="col-head"><h2>🔥 Graduating</h2><span class="muted" id="cGrad"></span></div><div class="col-body" id="colGrad"></div></div>
+      <div class="panel col"><div class="col-head"><h2>🎓 Bonded</h2><span class="muted" id="cBond"></span></div><div class="col-body" id="colBond"></div></div>
     </section>`;
   $("#heroCA").addEventListener("paste", (e) => {
     const ca = extractCA(e.clipboardData?.getData("text"));
@@ -304,7 +317,7 @@ function updateStats() {
     <div class="stat"><b>${st.order.length || "…"}</b><span>launches tracked</span></div>
     <div class="stat"><b>${live.length || "…"}</b><span>on the curve</span></div>
     <div class="stat"><b>${st.launchFee != null ? eth(st.launchFee) : "…"}</b><span>launch fee</span></div>
-    <div class="stat"><b>${last ? ago(last.block) : "…"}</b><span>since last launch</span></div>`;
+    <div class="stat"><b>${last ? ageOf(last) : "…"}</b><span>since last launch</span></div>`;
 }
 
 function matches(t) {
@@ -342,40 +355,63 @@ function fromPons(l) {
   return t;
 }
 
+// Bonded = Pons v2 launches that completed their curve and now trade in their locked pool.
+const isPonsBonded = (l) =>
+  l && l.stage === "graduated" && l.protocol === "v2" &&
+  (l.factory || "").toLowerCase() === PONS_V2_FACTORY.toLowerCase();
+
 async function loadPonsBoards() {
-  const [hot, grad, trending] = await Promise.all([
-    M.ponsLaunches({ stage: "curve", sort: "active" }).catch(() => null),
+  const [newest, grad, bonded, trending] = await Promise.all([
+    M.ponsLaunches({ stage: "curve", sort: "newest" }).catch(() => null),
     M.ponsLaunches({ stage: "curve", sort: "progress" }).catch(() => null),
+    M.ponsLaunches({ stage: "graduated", sort: "newest" }).catch(() => null),
     M.ponsTrending().catch(() => null),
   ]);
-  if (hot) st.hot = hot.filter(isPonsCurve).map(fromPons);
+  // Newest from Pons fills any gap the on-chain feed has not caught yet.
+  if (newest) {
+    let added = false;
+    for (const l of newest.filter(isPonsCurve)) {
+      const known = st.tokens.has(l.address.toLowerCase());
+      const t = fromPons(l);
+      if (!st.order.includes(t)) { st.order.push(t); added = true; if (!known && st.loaded) st.freshUntil.set(l.address.toLowerCase(), Date.now() + 3000); }
+    }
+    if (added) sortOrder();
+  }
   if (grad) st.grad = grad.filter(isPonsCurve).map(fromPons);
+  if (bonded) st.bonded = bonded.filter(isPonsBonded).map((l) => Object.assign(fromPons(l), { phase: 2, progress: 1, graduatedAt: l.graduatedAt, mcapUsd: l.marketCapUsd, mcapEth: l.quote?.isNative ? l.marketCapQuote : null }))
+    .sort((a, b) => (b.graduatedAt || 0) - (a.graduatedAt || 0));
   if (trending) st.trendingCurve = trending.filter((x) => isPonsCurve(x.launch)).map((x) => Object.assign(fromPons(x.launch), { trend: x, image: x.image }));
-  st.boardsFailed = !hot && !grad && !trending;
+  st.boardsFailed = !newest && !grad && !bonded && !trending;
   if (route().page === "") renderDiscoverLists();
 }
 
+const fmtAge = (sec) => {
+  const s = Math.max(0, Date.now() / 1000 - sec);
+  return s < 60 ? `${Math.floor(s)}s` : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`;
+};
+// Ages carry their timestamp so a 1-second ticker can keep them live.
 function ageOf(t) {
-  if (t.createdAt && !t.block) {
-    const s = Math.max(0, Date.now() / 1000 - t.createdAt);
-    return s < 60 ? `${Math.floor(s)}s` : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`;
-  }
+  if (t.createdAt) return `<span data-ts="${t.createdAt}">${fmtAge(t.createdAt)}</span>`;
   return ago(t.block);
 }
+setInterval(() => { for (const el of document.querySelectorAll("[data-ts]")) el.textContent = fmtAge(Number(el.dataset.ts)); }, 1000);
 
 function card(t) {
   const fresh = (st.freshUntil.get(t.token.toLowerCase()) || 0) > Date.now();
-  const pct = Math.round((t.progress || 0) * 100);
+  const bonded = t.phase === 2;
+  const pct = bonded ? 100 : Math.round((t.progress || 0) * 100);
   return `
-  <div class="card ${fresh ? "fresh" : ""}" data-token="${t.token}">
+  <div class="card ${fresh ? "fresh" : ""} ${bonded ? "bonded" : ""}" data-token="${t.token}">
     ${avatar(t)}
     <div class="meta">
       <div class="t1"><b>${esc(t.name)}</b><span class="sym">$${esc(t.symbol)}</span></div>
-      <div class="t2"><span class="mc">MC ${usd(t.mcapEth)}</span><span>${ageOf(t)}</span><span>${pct}%</span>${t.creatorTaxBps ? `<span class="tag tax">tax ${t.creatorTaxBps / 100}%</span>` : ""}</div>
+      <div class="t2"><span class="mc">MC ${mcap(t)}</span>${bonded
+        ? `<span class="tag grad">bonded ${t.graduatedAt ? `<span data-ts="${t.graduatedAt}">${fmtAge(t.graduatedAt)}</span>` : ""}</span>`
+        : `<span>${ageOf(t)}</span><span>${pct}%</span>`}${t.creatorTaxBps ? `<span class="tag tax">tax ${t.creatorTaxBps / 100}%</span>` : ""}</div>
       <div class="bar"><i style="width:${pct}%"></i></div>
     </div>
     <div class="acts">
-      ${t.phase === 0 ? `<button class="btn sm green" data-qbuy="${t.token}">Buy ${esc(S.quickBuy)}</button>` : ""}
+      ${bonded ? `<a class="btn sm green" href="/token/${t.token}">Trade</a>` : `<button class="btn sm green" data-qbuy="${t.token}">Buy ${esc(S.quickBuy)}</button>`}
       <button class="btn sm" data-vamp="${t.token}">🧛 Vamp</button>
     </div>
   </div>`;
@@ -385,23 +421,26 @@ function renderDiscoverLists() {
   if (!$("#colNew")) return;
   if (!st.loaded) {
     const sk = `<div class="skel"></div>`.repeat(6);
-    $("#colNew").innerHTML = sk; $("#colHot").innerHTML = sk; $("#colGrad").innerHTML = sk;
+    $("#colNew").innerHTML = sk; $("#colGrad").innerHTML = sk; $("#colBond").innerHTML = sk;
     renderKing();
     return;
   }
-  // Only Pons v2 tokens still on their Pons curve.
+  // Pons v2 tokens only: still on the Pons curve (New, Graduating) or bonded into their Pons pool.
   const onCurve = (t) => t.phase === 0 && matches(t);
   const fresh = st.order.filter(onCurve).slice(0, 60);
-  const hot = (st.hot || []).filter(onCurve).slice(0, 60);
   const grad = (st.grad || []).filter(onCurve).sort((a, b) => b.progress - a.progress).slice(0, 60);
+  const bonded = (st.bonded || []).filter(matches).slice(0, 60);
   const fill = (id, cid, arr, empty) => {
-    $(id).innerHTML = arr.length ? arr.map(card).join("") : `<div class="empty">${empty}</div>`;
+    // Keep scroll position inside the column while it refreshes.
+    const el = $(id), top = el.scrollTop;
+    el.innerHTML = arr.length ? arr.map(card).join("") : `<div class="empty">${empty}</div>`;
+    el.scrollTop = top;
     $(cid).textContent = arr.length;
   };
-  const wait = st.boardsFailed ? "Pons board is unavailable right now." : st.hot ? null : "Loading from Pons…";
+  const wait = st.boardsFailed ? "Pons board is unavailable right now." : st.grad ? null : "Loading from Pons…";
   fill("#colNew", "#cNew", fresh, "No launches match.");
-  fill("#colHot", "#cHot", hot, wait || "Nothing trading right now.");
   fill("#colGrad", "#cGrad", grad, wait || "Nothing close to graduating.");
+  fill("#colBond", "#cBond", bonded, wait || "No bonded tokens.");
 
   renderKing();
   updateStats();
@@ -443,7 +482,7 @@ function renderKing() {
         <b>${esc(x.symbol)}</b><span class="muted">${Math.round((x.progress || 0) * 100)}%</span></div>`).join("")}
     </div>
     <div class="row">
-      <button class="btn green" data-qbuy="${k.token}">Buy ${esc(S.quickBuy)} Ξ</button>
+      <button class="btn green" data-qbuy="${k.token}">Buy ${esc(S.quickBuy)} ${ETH}</button>
       <button class="btn" data-vamp="${k.token}">🧛 Vamp it</button>
     </div>`;
 }
@@ -466,7 +505,7 @@ async function quickBuy(token, btn) {
     await ensureConn();
     const amount = parseEther(String(S.quickBuy || "0"));
     if (!amount) throw new Error("Set a quick-buy amount in Settings.");
-    toast(`Buying ${S.quickBuy} Ξ of $${esc(t.symbol)}…`);
+    toast(`Buying ${S.quickBuy} ${ETH} of $${esc(t.symbol)}…`);
     const r = await M.buy({ client, wallet: st.conn.wallet, account: st.conn.account, curve: t.curve, quoteIn: amount, slippageBps: Math.round(S.slippage * 100) });
     toast(`✅ Bought ~${compact(Number(formatUnits(r.tokensOut, 18)))} $${esc(t.symbol)}${txLink(r.hash)}`, "ok", 9000);
     M.loadLive(client, t).then(() => route().page === "" && renderDiscoverLists());
@@ -564,7 +603,7 @@ async function loadTokenTrades(t) {
       const b = l.eventName === "CurveBuy";
       return `<tr>
         <td class="${b ? "up" : "down"}"><b>${b ? "Buy" : "Sell"}</b></td>
-        <td>${Number(formatEther(b ? l.args.quoteIn : l.args.quoteOut)).toFixed(4)} Ξ</td>
+        <td>${Number(formatEther(b ? l.args.quoteIn : l.args.quoteOut)).toFixed(4)} ${ETH}</td>
         <td>${compact(Number(formatUnits(b ? l.args.tokensOut : l.args.tokensIn, 18)))}</td>
         <td class="mono"><a href="${scan("address/" + (l.args.buyer || l.args.seller))}" target="_blank" rel="noopener">${short(l.args.buyer || l.args.seller)}</a></td>
         <td class="muted">${ago(l.blockNumber)}</td>
@@ -686,7 +725,7 @@ function renderVamp(prefill) {
         <div class="steps">
           <div><span><b>Paste a CA</b> from any Robinhood Chain token: Pons, Pools, Noxa or plain ERC-20.</span></div>
           <div><span><b>Check the clone.</b> Name, ticker, logo and socials are filled in; edit anything.</span></div>
-          <div><span>Press <kbd>Enter</kbd>. It launches on Pons v2${S.devBuy && Number(S.devBuy) > 0 ? ` with a ${esc(S.devBuy)} Ξ dev buy` : ""}.</span></div>
+          <div><span>Press <kbd>Enter</kbd>. It launches on Pons v2${S.devBuy && Number(S.devBuy) > 0 ? ` with a ${esc(S.devBuy)} ${ETH} dev buy` : ""}.</span></div>
         </div>
         <button class="btn ghost" id="openSettings2">⚙ Vamp settings</button>
       </div>
@@ -770,7 +809,7 @@ async function vamp() {
   try {
     await ensureConn();
     const devBuyWei = parseEther(String(S.devBuy || "0"));
-    vstatus(`Vamping <b>${esc(meta.name)}</b> ($${esc(meta.symbol)})${devBuyWei ? ` + ${esc(S.devBuy)} Ξ dev buy` : ""}… confirm in wallet`);
+    vstatus(`Vamping <b>${esc(meta.name)}</b> ($${esc(meta.symbol)})${devBuyWei ? ` + ${esc(S.devBuy)} ${ETH} dev buy` : ""}… confirm in wallet`);
     const res = await launchVamp({ client, wallet: st.conn.wallet, account: st.conn.account, meta, opts: { creatorTaxBps: S.tax, buyback: S.buyback, devBuyWei } });
     vampHistory.unshift({ ...res, name: meta.name, symbol: meta.symbol, logo: meta.logo, from: src.ca, at: Date.now() });
     vampHistory = vampHistory.slice(0, 100);
@@ -917,7 +956,7 @@ function row(t, extra) {
   return `<div class="item" data-token="${t.token}" style="cursor:pointer">
     ${avatar(t)}
     <div style="flex:1;min-width:0"><b>${esc(t.name)}</b> <span class="muted">$${esc(t.symbol)}</span>
-      <div class="muted" style="font-size:12px">${extra ?? `MC ${usd(t.mcapEth)} · ${Math.round((t.progress || 0) * 100)}%`}</div></div>
+      <div class="muted" style="font-size:12px">${extra ?? `MC ${mcap(t)} · ${Math.round((t.progress || 0) * 100)}%`}</div></div>
     <a class="btn sm" href="/token/${t.token}">Trade</a>
   </div>`;
 }
@@ -1007,10 +1046,10 @@ Promise.all([
 updatePrices().then(() => route().page === "" && renderDiscoverLists());
 initialLoad().catch((e) => toast(`Could not load launches: ${errMsg(e)}`, "err", 12000));
 loadPonsBoards();
-setInterval(loadPonsBoards, 20000);
-setInterval(pollLaunches, 6000);
+setInterval(loadPonsBoards, 8000);
+setInterval(pollLaunches, 2500);
 setInterval(pollTrades, 5000);
-setInterval(pollLive, 15000);
+setInterval(pollLive, 10000);
 setInterval(updatePrices, 60000);
 setInterval(refreshGraduated, 60000);
 if (S.wallet === "burner" && S.burner) connect().catch(() => {});

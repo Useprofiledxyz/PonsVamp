@@ -107,7 +107,7 @@ h4 { margin: 8px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing
 .hero-main .bg-logo { position: absolute; right: -40px; bottom: -50px; width: 240px; opacity: .07; transform: rotate(-12deg); pointer-events: none; }
 .stats { display: flex; gap: 22px; margin-top: 18px; flex-wrap: wrap; }
 .stat b { display: block; font-size: 20px; }
-.stat span { font-size: 12px; color: var(--muted); }
+.stat > span { font-size: 12px; color: var(--muted); }
 
 .king { padding: 20px; display: grid; gap: 14px; position: relative; overflow: hidden; cursor: pointer; }
 .king::before { content: ""; position: absolute; inset: 0; background: radial-gradient(400px 200px at 80% 0%, rgba(255, 200, 71, .12), transparent 70%); pointer-events: none; }
@@ -286,3 +286,9 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; ma
   .tok-head { grid-template-columns: 64px 1fr; }
   .tok-head .av { width: 64px; height: 64px; }
 }
+.card.bonded .bar > i { background: linear-gradient(90deg, #1f9e57, var(--green)); }
+.card .acts a.btn { text-align: center; }
+.eth { width: .62em; height: 1em; display: inline-block; vertical-align: -0.14em; margin: 0 .05em; flex: 0 0 auto; }
+.pill .eth { color: #a9b4ff; }
+.card .t2 { flex-wrap: wrap; row-gap: 3px; align-items: center; }
+.card .t2 > span, .tag { white-space: nowrap; }

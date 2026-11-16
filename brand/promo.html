@@ -1,0 +1,149 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0}
+html,body{width:1920px;height:1080px;overflow:hidden}
+body{background:#060608;font-family:Inter,sans-serif;color:#f6f4ef;position:relative}
+.abs{position:absolute}
+#glow{inset:0;background:radial-gradient(900px 520px at 50% 45%,rgba(224,41,58,.28),transparent 70%)}
+#grid{inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(1100px 640px at 50% 50%,#000,transparent 75%)}
+.center{left:0;right:0;text-align:center}
+#logo{left:50%;top:50%;width:220px;height:220px;margin:-180px 0 0 -110px;filter:drop-shadow(0 30px 80px rgba(224,41,58,.6))}
+#word{top:600px;font-weight:900;font-size:110px;letter-spacing:.03em}
+#word b{color:#ff5a67}
+#chain{top:740px;font-size:30px;color:#a3a3ad;font-weight:600;letter-spacing:.2em;text-transform:uppercase}
+h1{font-size:92px;font-weight:900;letter-spacing:-.02em;line-height:1.05}
+h1 span{color:#ff5a67}
+#h2a{top:150px}
+#panel{left:50%;top:380px;width:1180px;margin-left:-590px;padding:34px;border-radius:32px;background:rgba(20,20,26,.94);border:1px solid #2a2a33;box-shadow:0 40px 120px -30px #000}
+#paste{font-family:"JetBrains Mono",monospace;font-size:36px;padding:26px 30px;border-radius:20px;border:3px solid #e0293a;background:#0d0d11;box-shadow:0 0 0 7px rgba(224,41,58,.18);height:94px;white-space:nowrap;overflow:hidden}
+#caret{display:inline-block;width:3px;height:40px;background:#ff5a67;vertical-align:-6px;margin-left:4px}
+#card{margin-top:26px;display:flex;gap:24px;align-items:center;padding:22px;border-radius:22px;background:#0d0d11;border:1px solid #26262e}
+.av{width:104px;height:104px;border-radius:24px;flex:0 0 104px;display:grid;place-items:center;font-weight:900;font-size:50px;background:linear-gradient(135deg,#5ad1ff,#2442d6)}
+.meta{flex:1}.meta b{font-size:40px}.meta .s{font-size:26px;color:#8e8e98;margin-left:12px}
+.soc{display:flex;gap:10px;margin-top:12px}.soc span{font-size:20px;padding:6px 14px;border-radius:99px;border:1px solid #2c2c36;color:#b9b9c3}
+#vbtn{padding:24px 38px;border-radius:18px;font-weight:900;font-size:36px;background:linear-gradient(180deg,#f0404f,#b8141f);box-shadow:0 18px 50px -14px rgba(224,41,58,.8)}
+#ok{margin-top:26px;font-family:"JetBrains Mono",monospace;font-size:32px;color:#3ddc84;height:44px}
+#feat{left:50%;top:330px;width:1600px;margin-left:-800px;display:flex;gap:36px}
+.f{flex:1;padding:44px 40px;border-radius:30px;background:rgba(20,20,26,.94);border:1px solid #2a2a33;box-shadow:0 30px 90px -30px #000}
+.f .i{font-size:64px}.f b{display:block;font-size:44px;margin-top:20px;font-weight:800}.f p{font-size:27px;color:#a3a3ad;margin-top:12px;line-height:1.4}
+.f .bar{height:12px;border-radius:6px;background:#22222b;margin-top:26px;overflow:hidden}.f .bar i{display:block;height:100%;background:linear-gradient(90deg,#e0293a,#ff8a4c,#ffc847)}
+#tick{left:0;right:0;top:880px;height:72px;border-top:1px solid #1f1f27;border-bottom:1px solid #1f1f27;background:#0b0b0f;overflow:hidden}
+#track{display:flex;gap:60px;white-space:nowrap;padding:18px 40px;font-size:28px;font-weight:600}
+.up{color:#3ddc84}.dn{color:#ff4d5e}
+#h3{top:150px}
+#cta{inset:0}
+#ctaLogo{left:50%;top:170px;width:200px;height:200px;margin-left:-100px;filter:drop-shadow(0 30px 80px rgba(224,41,58,.6))}
+#ctaT{top:420px}
+#url{left:50%;top:640px;transform:translateX(-50%);padding:30px 64px;border-radius:999px;background:linear-gradient(180deg,#f0404f,#b8141f);font-size:64px;font-weight:900;box-shadow:0 30px 90px -20px rgba(224,41,58,.9);white-space:nowrap}
+#ctaS{top:820px;font-size:30px;color:#a3a3ad}
+#flash{inset:0;background:#fff;pointer-events:none}
+</style></head><body>
+<div id="glow" class="abs"></div><div id="grid" class="abs"></div>
+
+<!-- S1 intro -->
+<img id="logo" class="abs" src="../public/logo.svg">
+<div id="word" class="abs center">PONS<b>VAMP</b></div>
+<div id="chain" class="abs center">on Robinhood Chain</div>
+
+<!-- S2 demo -->
+<h1 id="h2a" class="abs center">Spot a runner? <span>Vamp it.</span></h1>
+<div id="panel" class="abs">
+  <div id="paste"><span id="typed"></span><span id="caret"></span></div>
+  <div id="card">
+    <div class="av">F</div>
+    <div class="meta"><b>FloorPlan</b><span class="s">$PLAN</span>
+      <div class="soc"><span>𝕏 @FloorPlanRH</span><span>🌐 floorplanrh.xyz</span><span>logo ✓</span></div></div>
+    <div id="vbtn">VAMP ⏎</div>
+  </div>
+  <div id="ok"></div>
+</div>
+
+<!-- S3 features -->
+<h1 id="h3" class="abs center">Built for the <span>trenches.</span></h1>
+<div id="feat" class="abs">
+  <div class="f"><div class="i">⚡</div><b>Live Pons launches</b><p>New, Graduating and Bonded, straight from the Pons contracts.</p><div class="bar"><i style="width:82%"></i></div></div>
+  <div class="f"><div class="i">🧛</div><b>One-paste vamp</b><p>Name, ticker, logo and socials cloned. Press Enter, it's live.</p><div class="bar"><i style="width:100%"></i></div></div>
+  <div class="f"><div class="i">💰</div><b>Claim creator fees</b><p>Your profile shows fees from every launch. One click to claim.</p><div class="bar"><i style="width:64%"></i></div></div>
+</div>
+<div id="tick" class="abs"><div id="track"></div></div>
+
+<!-- S4 CTA -->
+<div id="cta" class="abs">
+  <img id="ctaLogo" class="abs" src="../public/logo.svg">
+  <h1 id="ctaT" class="abs center">Paste. Enter. <span>Vamp.</span></h1>
+  <div id="url" class="abs">ponsvamp.fun</div>
+  <div id="ctaS" class="abs center">The fastest way to launch on Pons · Robinhood Chain</div>
+</div>
+<div id="flash" class="abs"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const easeBack = (x) => { x = clamp(x); const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+// progress of a [start,end] window at time t
+const win = (t, s, e) => clamp((t - s) / (e - s));
+// visible between in..out with fades of d seconds
+const vis = (t, a, b, d = .35) => Math.min(win(t, a, a + d), 1 - win(t, b - d, b));
+function set(id, o, tf = "") { const el = $(id); el.style.opacity = o; el.style.transform = tf; }
+
+const CA = "0x5D31ae1D9c78E0596111Fd575cC5A2bB918C4b5e";
+const trades = [["BUY",.0420,"RHIABLO"],["BUY",.1200,"POOLZ"],["SELL",.0310,"GM"],["BUY",.0990,"PIZZA"],["BUY",.0550,"OPEN"],["SELL",.0120,"STUMPY"],["BUY",.2400,"PLAN"],["BUY",.0800,"MIRREN"]];
+$("track").innerHTML = [...trades, ...trades].map(([s, a, n]) => `<span><b class="${s === "BUY" ? "up" : "dn"}">${s}</b> ${a.toFixed(4)} ETH <span style="color:#8e8e98">$${n}</span></span>`).join("");
+
+window.render = (t) => {
+  // background breathe
+  $("glow").style.opacity = .75 + .25 * Math.sin(t * 1.4);
+  $("grid").style.transform = `translateY(${(t * 18) % 64}px)`;
+
+  // S1 0–3.2
+  const s1 = vis(t, 0, 3.2, .4);
+  const lp = easeBack(win(t, .1, .9));
+  set("logo", s1 * clamp(t / .3), `scale(${.4 + .6 * lp}) rotate(${(1 - lp) * -12}deg)`);
+  set("word", s1 * ease(win(t, .7, 1.3)), `translateY(${(1 - ease(win(t, .7, 1.3))) * 40}px)`);
+  set("chain", s1 * ease(win(t, 1.2, 1.8)), `translateY(${(1 - ease(win(t, 1.2, 1.8))) * 20}px)`);
+
+  // S2 3.2–9
+  const s2 = vis(t, 3.2, 9.0, .4);
+  set("h2a", s2 * ease(win(t, 3.3, 3.8)), `translateY(${(1 - ease(win(t, 3.3, 3.8))) * 30}px)`);
+  set("panel", s2 * ease(win(t, 3.6, 4.1)), `translateY(${(1 - ease(win(t, 3.6, 4.1))) * 60}px)`);
+  const n = Math.round(CA.length * win(t, 4.2, 5.4));
+  $("typed").textContent = CA.slice(0, n);
+  $("caret").style.opacity = Math.floor(t * 3) % 2 ? 1 : .2;
+  const cp = easeBack(win(t, 5.6, 6.1));
+  set("card", ease(win(t, 5.6, 6.0)), `translateY(${(1 - cp) * 30}px) scale(${.96 + .04 * cp})`);
+  const press = win(t, 6.8, 7.1);
+  $("vbtn").style.transform = `scale(${1 - .08 * Math.sin(press * Math.PI)})`;
+  $("vbtn").style.boxShadow = `0 18px 50px -14px rgba(224,41,58,.8), 0 0 0 ${press * 14 * (1 - press) * 4}px rgba(224,41,58,.35)`;
+  const okp = win(t, 7.2, 7.5);
+  $("ok").textContent = okp > 0 ? "✅ Launched $PLAN on Pons · 1 tx · 2.1s" : "";
+  $("ok").style.opacity = ease(okp);
+
+  // S3 9–14.2
+  const s3 = vis(t, 9.0, 14.2, .4);
+  set("h3", s3 * ease(win(t, 9.1, 9.6)), `translateY(${(1 - ease(win(t, 9.1, 9.6))) * 30}px)`);
+  set("feat", s3, "");
+  [...document.querySelectorAll(".f")].forEach((el, i) => {
+    const p = easeBack(win(t, 9.5 + i * .25, 10.1 + i * .25));
+    el.style.opacity = ease(win(t, 9.5 + i * .25, 9.9 + i * .25));
+    el.style.transform = `translateY(${(1 - p) * 80}px)`;
+  });
+  set("tick", s3 * ease(win(t, 10.4, 10.9)), "");
+  $("track").style.transform = `translateX(${-((t - 9) * 160) % 1600}px)`;
+
+  // S4 14.2–19
+  const s4 = win(t, 14.2, 14.6);
+  set("cta", s4, "");
+  const cl = easeBack(win(t, 14.3, 15.0));
+  set("ctaLogo", ease(win(t, 14.3, 14.7)), `scale(${.5 + .5 * cl})`);
+  set("ctaT", ease(win(t, 14.8, 15.3)), `translateY(${(1 - ease(win(t, 14.8, 15.3))) * 30}px)`);
+  const up = easeBack(win(t, 15.4, 16.0));
+  const pulse = t > 16 ? 1 + .03 * Math.sin((t - 16) * 5) : 1;
+  set("url", ease(win(t, 15.4, 15.8)), `translateX(-50%) scale(${(.7 + .3 * up) * pulse})`);
+  set("ctaS", ease(win(t, 16.0, 16.5)), "");
+
+  // quick white flashes on scene cuts
+  const fl = Math.max(...[3.2, 9.0, 14.2].map((c) => 1 - clamp(Math.abs(t - c) / .12)));
+  $("flash").style.opacity = fl * .12;
+};
+render(0);
+</script></body></html>

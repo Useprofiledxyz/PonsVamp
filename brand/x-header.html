@@ -1,0 +1,72 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0}
+body{width:1500px;height:500px;overflow:hidden;background:#060608;font-family:Inter,sans-serif;color:#f6f4ef;position:relative}
+.abs{position:absolute}
+.bg{inset:0;background:
+  radial-gradient(520px 340px at 76% 42%,rgba(224,41,58,.45),transparent 70%),
+  radial-gradient(420px 260px at 34% 0%,rgba(224,41,58,.22),transparent 70%),
+  radial-gradient(600px 300px at 50% 120%,rgba(51,91,249,.10),transparent 70%)}
+.streak{width:1400px;height:2px;background:linear-gradient(90deg,transparent,rgba(255,90,103,.55),transparent);transform-origin:center;filter:blur(.3px)}
+.grid{inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(800px 380px at 70% 45%,#000,transparent 75%)}
+.wm{right:120px;top:-40px;width:520px;opacity:.10;transform:rotate(-10deg);filter:blur(1px)}
+.left{left:290px;top:84px;width:620px}
+.kick{display:inline-flex;align-items:center;gap:10px;padding:7px 14px;border-radius:999px;border:1px solid rgba(255,90,103,.45);background:rgba(224,41,58,.12);font-size:14px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ffb3b9}
+.dot{width:9px;height:9px;border-radius:50%;background:#3ddc84;box-shadow:0 0 12px #3ddc84}
+h1{margin-top:16px;font-size:54px;line-height:1.02;font-weight:900;letter-spacing:-.025em}
+h1 .r{background:linear-gradient(90deg,#ff5a67,#ff8a4c 60%,#ffc847);-webkit-background-clip:text;background-clip:text;color:transparent}
+.row{display:flex;gap:14px;align-items:center;margin-top:24px}
+.url{display:inline-flex;align-items:center;gap:12px;padding:12px 22px;border-radius:999px;background:linear-gradient(180deg,#f0404f,#b8141f);font-weight:900;font-size:24px;box-shadow:0 14px 40px -10px rgba(224,41,58,.9),inset 0 1px 0 rgba(255,255,255,.25)}
+.url img{width:28px;height:28px}
+.feat{font-size:14px;color:#b9b9c3;font-weight:600;display:flex;gap:14px;white-space:nowrap}
+.card{border-radius:18px;background:rgba(18,18,24,.96);border:1px solid #2c2c36;box-shadow:0 30px 70px -20px rgba(0,0,0,.9),0 0 0 1px rgba(224,41,58,.08)}
+.paste{right:118px;top:58px;width:470px;padding:14px;transform:rotate(-4deg)}
+.paste .in{font-family:"JetBrains Mono",monospace;font-size:15px;padding:13px 14px;border-radius:12px;border:2px solid #e0293a;background:#0c0c10;box-shadow:0 0 0 4px rgba(224,41,58,.2);white-space:nowrap}
+.paste .in i{display:inline-block;width:2px;height:17px;background:#ff5a67;vertical-align:-3px;margin-left:3px}
+.tok{display:flex;gap:12px;align-items:center;padding:12px}
+.av{width:50px;height:50px;border-radius:13px;flex:0 0 50px;display:grid;place-items:center;font-weight:900;font-size:22px}
+.m{flex:1;min-width:0}.m b{font-size:16px}.m .s{font-size:12px;color:#8e8e98;margin-left:6px}
+.mc{font-size:12px;color:#c9c9d1;margin-top:3px}
+.bar{height:7px;border-radius:4px;background:#22222b;margin-top:7px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#e0293a,#ff8a4c,#ffc847)}
+.bar.g i{background:linear-gradient(90deg,#1f9e57,#3ddc84)}
+.btn{padding:9px 14px;border-radius:10px;font-weight:800;font-size:14px;white-space:nowrap}
+.btn.r{background:linear-gradient(180deg,#f0404f,#b8141f)}.btn.g{background:linear-gradient(180deg,#43e38c,#1f9e57);color:#04140a}
+.t1{right:236px;top:182px;width:360px;transform:rotate(3deg)}
+.t2{right:24px;top:236px;width:360px;transform:rotate(-2deg)}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid rgba(61,220,132,.4);color:#3ddc84;margin-left:6px}
+.toast{padding:10px 16px;border-radius:12px;background:#17171d;border:1px solid #2c2c36;border-left:3px solid #3ddc84;font-size:14px;font-weight:600;box-shadow:0 18px 40px -12px #000;white-space:nowrap}
+.toast .eth{width:9px;height:14px;vertical-align:-2px}
+.ok{right:236px;top:368px;transform:rotate(-2deg);font-family:"JetBrains Mono",monospace;color:#3ddc84}
+.buy{right:40px;top:400px;transform:rotate(3deg)}
+.buy b{color:#3ddc84}
+</style></head><body>
+<div class="abs bg"></div><div class="abs grid"></div>
+<div class="abs streak" style="left:-100px;top:120px;transform:rotate(-14deg);opacity:.7"></div>
+<div class="abs streak" style="left:300px;top:430px;transform:rotate(-14deg);opacity:.45"></div>
+<img class="abs wm" src="../public/logo.svg">
+
+<div class="abs left">
+  <div class="kick"><span class="dot"></span>Live on Pons · Robinhood Chain</div>
+  <h1>Paste a CA.<br><span class="r">Press Enter. Vamp it.</span></h1>
+  <div class="row">
+    <div class="url"><img src="../public/logo.svg">ponsvamp.fun</div>
+    <div class="feat"><span>⚡ Live feed</span><span>🧛 1-paste vamp</span><span>💰 Claim fees</span></div>
+  </div>
+</div>
+
+<div class="abs card paste"><div class="in">0x5D31ae1D9c78E0596111Fd575cC5A2bB918C4b5e<i></i></div></div>
+
+<div class="abs card t1"><div class="tok">
+  <div class="av" style="background:linear-gradient(135deg,#ff5a67,#8f0f1a)">R</div>
+  <div class="m"><b>RHIABLO</b><span class="s">$RHIABLO</span><div class="mc">MC $26.0K · 85%</div><div class="bar"><i style="width:85%"></i></div></div>
+  <div class="btn r">VAMP ⏎</div>
+</div></div>
+
+<div class="abs card t2"><div class="tok">
+  <div class="av" style="background:linear-gradient(135deg,#5ad1ff,#2442d6)">F</div>
+  <div class="m"><b>FloorPlan</b><span class="s">$PLAN</span><span class="tag">bonded</span><div class="mc">MC $182K</div><div class="bar g"><i style="width:100%"></i></div></div>
+  <div class="btn g">Trade</div>
+</div></div>
+
+<div class="abs toast ok">✅ Launched $PLAN on Pons · 1 tx</div>
+<div class="abs toast buy"><b>BUY</b> 0.1200 <svg class="eth" viewBox="0 0 256 417"><path fill="currentColor" d="M128 0 125 9.5v275.7l3 2.8 128-75.6z" opacity=".6"/><path fill="currentColor" d="M128 0 0 212.3l128 75.7V154.2z"/><path fill="currentColor" d="M128 312.2l-1.6 1.9v98.2l1.6 4.6 128-180.3z" opacity=".6"/><path fill="currentColor" d="M128 416.9V312.2L0 236.6z"/></svg> $RHIABLO</div>
+</body></html>
